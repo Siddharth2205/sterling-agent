@@ -1,11 +1,18 @@
-"""Sterling CLI — one entry point for all commands."""
+"""Sterling CLI -- one entry point for all commands."""
 
+import io
 import json
 import logging
 import sys
 from pathlib import Path
 
 import click
+
+# Ensure UTF-8 output on Windows consoles (cp1252 by default)
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "buffer"):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("sterling")
@@ -14,10 +21,10 @@ logger = logging.getLogger("sterling")
 @click.group()
 @click.version_option(version="0.1.0", prog_name="sterling")
 def cli():
-    """Sterling — Canadian portfolio analysis agent."""
+    """Sterling -- Canadian portfolio analysis agent."""
 
 
-# ── Portfolio commands ────────────────────────────────────────────────────────
+# -- Portfolio commands --------------------------------------------------------
 
 @cli.command()
 @click.argument("ticker")
@@ -28,7 +35,7 @@ def add(ticker, shares, avg_cost_cad, currency):
     """Add or update a holding. Example: sterling add SHOP.TO 5 98.50"""
     from sterling import portfolio
     h = portfolio.add_holding(ticker, shares, avg_cost_cad, currency)
-    click.echo(f"✓ Added {h['ticker']}: {h['shares']} shares @ ${h['avg_cost_cad']:.2f} {h['currency']}")
+    click.echo(f"[OK] Added {h['ticker']}: {h['shares']} shares @ ${h['avg_cost_cad']:.2f} {h['currency']}")
 
 
 @cli.command()
@@ -37,9 +44,9 @@ def remove(ticker):
     """Remove a holding from the portfolio."""
     from sterling import portfolio
     if portfolio.remove_holding(ticker):
-        click.echo(f"✓ Removed {ticker.upper()}")
+        click.echo(f"[OK] Removed {ticker.upper()}")
     else:
-        click.echo(f"✗ {ticker.upper()} not found in portfolio", err=True)
+        click.echo(f"[ERR] {ticker.upper()} not found in portfolio", err=True)
 
 
 @cli.command()
@@ -48,8 +55,8 @@ def watch(tickers):
     """Add tickers to the watchlist. Example: sterling watch ENB.TO BNS.TO CNR.TO"""
     from sterling import portfolio
     for ticker in tickers:
-        wl = portfolio.add_to_watchlist(ticker)
-        click.echo(f"✓ Watching {ticker.upper()}")
+        portfolio.add_to_watchlist(ticker)
+        click.echo(f"[OK] Watching {ticker.upper()}")
 
 
 @cli.command()
@@ -59,7 +66,7 @@ def unwatch(tickers):
     from sterling import portfolio
     for ticker in tickers:
         portfolio.remove_from_watchlist(ticker)
-        click.echo(f"✓ Removed {ticker.upper()} from watchlist")
+        click.echo(f"[OK] Removed {ticker.upper()} from watchlist")
 
 
 @cli.command("portfolio")
@@ -90,25 +97,25 @@ def show_portfolio():
     click.echo("-" * 76)
 
     for p in summary["positions"]:
-        price_str = f"${p['current_price']:.2f}" if p['current_price'] else "—"
-        val_str = f"${p['current_value']:.2f}" if p['current_value'] else "—"
-        pnl_str = f"${p['unrealized_pnl']:+.2f}" if p['unrealized_pnl'] is not None else "—"
-        pnl_pct_str = f"{p['pnl_pct']:+.1f}%" if p['pnl_pct'] is not None else "—"
+        price_str = f"${p['current_price']:.2f}" if p['current_price'] else "-"
+        val_str = f"${p['current_value']:.2f}" if p['current_value'] else "-"
+        pnl_str = f"${p['unrealized_pnl']:+.2f}" if p['unrealized_pnl'] is not None else "-"
+        pnl_pct_str = f"{p['pnl_pct']:+.1f}%" if p['pnl_pct'] is not None else "-"
         click.echo(
             f"{p['ticker']:<12} {p['shares']:>8.2f} ${p['avg_cost_cad']:>9.2f} "
             f"{price_str:>10} {val_str:>10} {pnl_str:>10} {pnl_pct_str:>8} {p['weight_pct']:>5.1f}%"
         )
 
     click.echo("-" * 76)
-    total_val = f"${summary['total_value_cad']:.2f}" if summary['total_value_cad'] else "—"
-    total_pnl = f"${summary['total_unrealized_pnl']:+.2f}" if summary['total_unrealized_pnl'] is not None else "—"
+    total_val = f"${summary['total_value_cad']:.2f}" if summary['total_value_cad'] else "-"
+    total_pnl = f"${summary['total_unrealized_pnl']:+.2f}" if summary['total_unrealized_pnl'] is not None else "-"
     click.echo(f"  Cost basis: ${summary['total_cost_cad']:.2f}  |  Current: {total_val}  |  P&L: {total_pnl}")
 
     if summary["watchlist"]:
         click.echo(f"\n  Watchlist: {', '.join(summary['watchlist'])}")
 
 
-# ── Analysis ──────────────────────────────────────────────────────────────────
+# -- Analysis -----------------------------------------------------------------
 
 @cli.command()
 @click.option("--ticker", "-t", multiple=True, help="Specific tickers to analyze (default: portfolio + watchlist)")
@@ -120,7 +127,7 @@ def analyze(ticker, notify, json_output):
 
     cfg = config.validate_optional()
     if cfg["missing"]:
-        click.echo(f"Warning: missing env vars {cfg['missing']} — some signals will be degraded", err=True)
+        click.echo(f"Warning: missing env vars {cfg['missing']} -- some signals will be degraded", err=True)
 
     if ticker:
         tickers = list(ticker)
@@ -146,42 +153,42 @@ def analyze(ticker, notify, json_output):
         actionable = [r for r in results if r.get("recommendation") in ("BUY", "ACCUMULATE", "SELL", "TRIM")]
         for signal in actionable:
             notifier.send_signal(signal, config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHAT_ID)
-        click.echo(f"\n✓ Notifications sent for {len(actionable)} actionable signals.")
+        click.echo(f"\n[OK] Notifications sent for {len(actionable)} actionable signals.")
 
 
 def _print_analysis_table(results: list):
     rec_colors = {
-        "BUY": "\033[32m",       # green
-        "ACCUMULATE": "\033[36m", # cyan
-        "HOLD": "\033[37m",       # white
-        "TRIM": "\033[33m",       # yellow
-        "SELL": "\033[31m",       # red
-        "ERROR": "\033[35m",      # magenta
+        "BUY":        "\033[32m",
+        "ACCUMULATE": "\033[36m",
+        "HOLD":       "\033[37m",
+        "TRIM":       "\033[33m",
+        "SELL":       "\033[31m",
+        "ERROR":      "\033[35m",
     }
     reset = "\033[0m"
 
     click.echo(f"{'TICKER':<12} {'REC':<11} {'CONF':>5} {'PRICE':>8} {'ENTRY ZONE':>20} {'STOP':>8} {'TARGET':>8} {'R:R':>5}")
-    click.echo("─" * 83)
+    click.echo("-" * 83)
 
     for r in results:
         if "error" in r:
             click.echo(f"{r['ticker']:<12} ERROR: {r['error']}")
             continue
-        rec = r.get("recommendation", "—")
+        rec = r.get("recommendation", "-")
         col = rec_colors.get(rec, "")
         conf = r.get("confidence", 0)
-        price = f"${r['current_price']:.2f}" if r.get("current_price") else "—"
+        price = f"${r['current_price']:.2f}" if r.get("current_price") else "-"
         ez = r.get("entry_zone")
-        entry_str = f"${ez[0]:.2f}–${ez[1]:.2f}" if ez else "—"
-        stop = f"${r['stop_loss']:.2f}" if r.get("stop_loss") else "—"
-        target = f"${r['target']:.2f}" if r.get("target") else "—"
-        rr = f"{r['risk_reward']:.1f}x" if r.get("risk_reward") else "—"
+        entry_str = f"${ez[0]:.2f}-${ez[1]:.2f}" if ez else "-"
+        stop = f"${r['stop_loss']:.2f}" if r.get("stop_loss") else "-"
+        target = f"${r['target']:.2f}" if r.get("target") else "-"
+        rr = f"{r['risk_reward']:.1f}x" if r.get("risk_reward") else "-"
         click.echo(f"{r['ticker']:<12} {col}{rec:<11}{reset} {conf:>5.1f} {price:>8} {entry_str:>20} {stop:>8} {target:>8} {rr:>5}")
 
     click.echo("\n  SIGNAL DETAIL")
-    click.echo("─" * 83)
+    click.echo("-" * 83)
     click.echo(f"  {'TICKER':<12} {'TECH':>6} {'FUND':>6} {'SENT':>6} {'MACRO':>6} {'INSD':>6}   THESIS")
-    click.echo(f"  {'──────':<12} {'────':>6} {'────':>6} {'────':>6} {'────':>6} {'────':>6}")
+    click.echo(f"  {'------':<12} {'----':>6} {'----':>6} {'----':>6} {'----':>6} {'----':>6}")
     for r in results:
         if "error" in r:
             continue
@@ -192,10 +199,10 @@ def _print_analysis_table(results: list):
             f"{s.get('sentiment',0):>6.0f} {s.get('macro',0):>6.0f} {s.get('insider',0):>6.0f}   {thesis}"
         )
         if r.get("fx_warning"):
-            click.echo(f"  {'':12} ⚠  {r['fx_warning']}")
+            click.echo(f"  {'':12} [!] {r['fx_warning']}")
 
 
-# ── Backtest ──────────────────────────────────────────────────────────────────
+# -- Backtest -----------------------------------------------------------------
 
 @cli.command()
 @click.option("--years", default=3, help="Years of history to backtest", show_default=True)
@@ -219,10 +226,10 @@ def backtest(years, capital, threshold, hold_days):
     out_dir = save_results(result)
 
     stats = result.stats
-    click.echo("\n" + "═" * 52)
+    click.echo("\n" + "=" * 52)
     click.echo("  STERLING BACKTEST RESULTS")
-    click.echo("═" * 52)
-    click.echo(f"  Period:           {stats.get('start_date')} → {stats.get('end_date')}")
+    click.echo("=" * 52)
+    click.echo(f"  Period:           {stats.get('start_date')} -> {stats.get('end_date')}")
     click.echo(f"  Starting capital: ${stats.get('capital_cad', 0):,.2f} CAD")
     click.echo(f"  Final value:      ${stats.get('final_value_cad', 0):,.2f} CAD")
     click.echo(f"  Total return:     {stats.get('total_return_pct', 0):+.2f}%")
@@ -234,16 +241,16 @@ def backtest(years, capital, threshold, hold_days):
     click.echo(f"  Profit factor:    {stats.get('profit_factor', 0)}")
     click.echo(f"  Avg R:R:          {stats.get('avg_rr', 0):.2f}x")
     click.echo(f"  Total trades:     {stats.get('total_trades', 0)}")
-    click.echo("─" * 52)
+    click.echo("-" * 52)
     click.echo(f"  XIC.TO CAGR:      {stats.get('benchmark_xic_cagr_pct', 0):+.2f}% (after 1.5% FX drag)")
     beats = stats.get("beats_benchmark", False)
-    verdict = "✓ Strategy beats benchmark" if beats else "✗ Strategy underperforms benchmark"
+    verdict = "[OK] Strategy beats benchmark" if beats else "[!!] Strategy underperforms benchmark"
     click.echo(f"  Verdict:          {verdict}")
-    click.echo("═" * 52)
+    click.echo("=" * 52)
     click.echo(f"\n  Charts and trade log saved to: {out_dir}")
 
 
-# ── Scheduler ────────────────────────────────────────────────────────────────
+# -- Scheduler ----------------------------------------------------------------
 
 @cli.command("run")
 @click.option("--once", is_flag=True, help="Run one analysis pass and exit")
@@ -254,7 +261,7 @@ def run(once, daemon):
     start(daemon=daemon, run_once=once)
 
 
-# ── Test runner ───────────────────────────────────────────────────────────────
+# -- Test runner --------------------------------------------------------------
 
 @cli.command("test")
 def run_tests():
