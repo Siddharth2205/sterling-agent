@@ -1,0 +1,15 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.log
+portfolio.json
+data/portfolio.json
+data/notifications.db
+data/backtest_*/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
