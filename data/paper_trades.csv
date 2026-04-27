@@ -1,2 +1,3 @@
 timestamp,ticker,recommendation,confidence,entry_zone_low,entry_zone_high,stop_loss,target,thesis,hypothetical_position_size_cad
 2026-04-27 23:08:00Z,TD.TO,ACCUMULATE,62.4,143.12,145.16,140.06,151.17,"TD.TO shows its strongest conviction in fundamental profile (78/100), with P/E of 11.7 and revenue growing 21% YoY. Risk-reward is constructive; primary risk is technical setup (51/100) — warrants a tight stop.",250.0
+2026-04-27 23:37:51Z,TD.TO,ACCUMULATE,62.4,143.12,145.16,140.06,151.17,"TD.TO shows its strongest conviction in fundamental profile (78/100), with P/E of 11.7 and revenue growing 21% YoY. Risk-reward is constructive; primary risk is technical setup (51/100) — warrants a tight stop.",250.0
