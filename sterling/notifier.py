@@ -1,6 +1,6 @@
 """Telegram notification with SQLite-backed throttle."""
 
-import json
+import html as html_mod
 import logging
 import sqlite3
 import time
@@ -71,8 +71,17 @@ def _record_sent(ticker: str, confidence: float, rec: str) -> None:
         conn.close()
 
 
+def _html(text: str) -> str:
+    """HTML-escape user-provided content for Telegram HTML parse mode."""
+    return html_mod.escape(str(text))
+
+
 def _format_message(signal: dict, paper: bool = False) -> str:
-    """Format a signal dict into a Telegram-ready message (Markdown V2).
+    """Format a signal dict into a Telegram-ready message (HTML parse mode).
+
+    HTML mode is used instead of MarkdownV2 because it only requires escaping
+    <, >, and & — not the 18+ special chars MarkdownV2 rejects unescaped.
+    User-provided text (thesis, fx_warning, ticker) passes through _html().
 
     When paper=True the header is prefixed with "📝 PAPER TRADE —" so the
     recipient can never mistake a paper alert for a live execution signal.
@@ -110,41 +119,41 @@ def _format_message(signal: dict, paper: bool = False) -> str:
         f"Ins:{scores.get('insider', 0):.0f}"
     )
 
-    paper_prefix = "📝 *PAPER TRADE* — " if paper else ""
+    paper_prefix = "📝 <b>PAPER TRADE</b> — " if paper else ""
     lines = [
-        f"{paper_prefix}*{rec_emoji} STERLING SIGNAL*",
-        f"",
-        f"*{ticker}* — `{rec}` | Confidence: *{conf:.0f}/100*",
-        f"",
-        f"📊 Score axes: `{core_line}`",
-        f"📰 Context \\(informational\\): `{info_line}`",
-        f"",
+        f"{paper_prefix}<b>{rec_emoji} STERLING SIGNAL</b>",
+        "",
+        f"<b>{_html(ticker)}</b> — <code>{rec}</code> | Confidence: <b>{conf:.0f}/100</b>",
+        "",
+        f"📊 Score axes: <code>{core_line}</code>",
+        f"📰 Context (informational): <code>{info_line}</code>",
+        "",
     ]
 
     if price:
-        lines.append(f"💵 Price: `${price:.2f}`")
+        lines.append(f"💵 Price: <code>${price:.2f}</code>")
     if entry:
-        lines.append(f"🎯 Entry zone: `${entry[0]:.2f} – ${entry[1]:.2f}`")
+        lines.append(f"🎯 Entry zone: <code>${entry[0]:.2f} – ${entry[1]:.2f}</code>")
     if stop:
-        lines.append(f"🛑 Stop: `${stop:.2f}`")
+        lines.append(f"🛑 Stop: <code>${stop:.2f}</code>")
     if target:
-        lines.append(f"🏁 Target: `${target:.2f}`")
+        lines.append(f"🏁 Target: <code>${target:.2f}</code>")
     if rr:
-        lines.append(f"⚖️  R:R: `{rr:.1f}x`")
+        lines.append(f"⚖️  R:R: <code>{rr:.1f}x</code>")
 
     lines += [
-        f"",
-        f"📝 _{thesis}_",
+        "",
+        f"📝 <i>{_html(thesis)}</i>",
     ]
 
     if fx_warn:
-        lines += [f"", f"⚠️  _{fx_warn}_"]
+        lines += ["", f"⚠️  <i>{_html(fx_warn)}</i>"]
 
     lines += [
-        f"",
-        f"🕐 `{ts[:16].replace('T', ' ')} UTC`",
-        f"",
-        f"_Signal, not advice\\. You decide\\._",
+        "",
+        f"🕐 <code>{ts[:16].replace('T', ' ')} UTC</code>",
+        "",
+        "<i>Signal, not advice. You decide.</i>",
     ]
 
     return "\n".join(lines)
@@ -178,7 +187,7 @@ def send_signal(
     payload = {
         "chat_id": chat_id,
         "text": message,
-        "parse_mode": "MarkdownV2",
+        "parse_mode": "HTML",
     }
 
     try:
@@ -192,6 +201,12 @@ def send_signal(
         else:
             logger.error(f"Telegram API error: {result}")
             return False
+    except requests.exceptions.HTTPError as e:
+        logger.error(
+            "Telegram HTTP %d for %s: %s | payload (first 300 chars): %s",
+            resp.status_code, ticker, e, message[:300],
+        )
+        return False
     except Exception as e:
         logger.error(f"Failed to send Telegram alert for {ticker}: {e}")
         return False
