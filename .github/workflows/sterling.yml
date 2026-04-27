@@ -91,3 +91,4 @@ jobs:
             git commit -m "chore: paper trades update [skip ci]"
             git push origin ${{ github.ref_name }}
           fi
+
