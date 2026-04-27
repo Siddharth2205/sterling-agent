@@ -12,14 +12,22 @@ from sterling import data_feed
 
 logger = logging.getLogger(__name__)
 
-# ── Axis weights ──────────────────────────────────────────────────────────────
+# ── Axis weights (3-axis scoring model) ───────────────────────────────────────
+# Sentiment and insider are NOT in WEIGHTS — they cannot be backtested on free-tier
+# historical data (no dated Finnhub records, no historical pytrends per date).
+# They are still fetched in live mode and surfaced in alerts as INFORMATIONAL
+# context, but they do not move the confidence number.
+# Rationale: a model where two axes silently return 50 (neutral sentinel) 60% of
+# the time is not a 5-axis model in practice. A clean 3-axis model with known
+# data quality is more honest and more consistently testable.
 WEIGHTS = {
-    "technical":   0.25,
-    "fundamental": 0.25,
-    "sentiment":   0.20,
-    "macro":       0.15,
-    "insider":     0.15,
+    "technical":   0.40,
+    "fundamental": 0.40,
+    "macro":       0.20,
 }
+
+# Axes fetched for informational display but excluded from the score.
+INFORMATIONAL_AXES = ("sentiment", "insider")
 
 # ── Signal → recommendation mapping ──────────────────────────────────────────
 def _confidence_to_rec(score: float) -> str:
@@ -36,7 +44,8 @@ def _confidence_to_rec(score: float) -> str:
 
 # ── Position sizing rules ($1k CAD account) ───────────────────────────────────
 MIN_PRICE = 5.0
-MIN_AVG_VOLUME = 100_000
+MIN_AVG_VOLUME = 100_000          # TSX / TSX-V floor
+CDR_MIN_AVG_VOLUME = 500_000      # NEO CDR floor — thinner market, higher liquidity bar
 MAX_RISK_CAD = 20.0      # 2% of $1,000
 MAX_POSITIONS = 4
 TARGET_POSITION_CAD = 250.0
@@ -345,39 +354,44 @@ def apply_macro_overlay(confidence: float, macro: dict, ticker: str = "", is_ene
 # ── Thesis generator ──────────────────────────────────────────────────────────
 
 def _generate_thesis(ticker: str, rec: str, scores: dict, fundamentals: dict, macro: dict) -> str:
-    """Two-sentence plain-English thesis from signal mix."""
-    tech = scores["technical"]
-    fund = scores["fundamental"]
-    sent = scores["sentiment"]
-    macro_s = scores["macro"]
-    ins = scores["insider"]
-
-    strongest = max(scores, key=scores.get)
-    weakest = min(scores, key=scores.get)
+    """Two-sentence plain-English thesis from scoring axes only (technical, fundamental, macro)."""
+    scoring_scores = {k: scores[k] for k in WEIGHTS}
+    strongest = max(scoring_scores, key=scoring_scores.get)
+    weakest = min(scoring_scores, key=scoring_scores.get)
 
     axis_labels = {
         "technical": "technical setup",
         "fundamental": "fundamental profile",
-        "sentiment": "news and retail sentiment",
         "macro": "macro backdrop",
-        "insider": "insider activity",
     }
 
     pe_str = f"P/E of {fundamentals.get('pe'):.1f}" if fundamentals.get("pe") else "valuation"
-    rev_str = f"revenue growing {fundamentals.get('revenue_growth', 0)*100:.0f}% YoY" if fundamentals.get("revenue_growth") else ""
+    rev_str = (
+        f"revenue growing {fundamentals.get('revenue_growth', 0)*100:.0f}% YoY"
+        if fundamentals.get("revenue_growth") else ""
+    )
 
-    s1 = f"{ticker} shows its strongest conviction in {axis_labels[strongest]} (score {scores[strongest]:.0f}/100)"
+    s1 = f"{ticker} shows its strongest conviction in {axis_labels[strongest]} ({scoring_scores[strongest]:.0f}/100)"
     if rev_str:
         s1 += f", with {pe_str} and {rev_str}."
     else:
-        s1 += f"."
+        s1 += "."
 
     if rec in ("BUY", "ACCUMULATE"):
-        s2 = f"The risk-reward is constructive; primary risk is {axis_labels[weakest]} (score {scores[weakest]:.0f}/100) which warrants a tight stop."
+        s2 = (
+            f"Risk-reward is constructive; primary risk is "
+            f"{axis_labels[weakest]} ({scoring_scores[weakest]:.0f}/100) — warrants a tight stop."
+        )
     elif rec in ("TRIM", "SELL"):
-        s2 = f"Weak {axis_labels[weakest]} (score {scores[weakest]:.0f}/100) leads the bear case; reduce or exit on any bounce."
+        s2 = (
+            f"Weak {axis_labels[weakest]} ({scoring_scores[weakest]:.0f}/100) leads the bear case; "
+            "reduce or exit on any bounce."
+        )
     else:
-        s2 = f"Mixed signals across axes — {axis_labels[weakest]} (score {scores[weakest]:.0f}/100) is the key watch point; no action until conviction improves."
+        s2 = (
+            f"Mixed signals — {axis_labels[weakest]} ({scoring_scores[weakest]:.0f}/100) "
+            "is the key watch point; no action until conviction improves."
+        )
 
     return f"{s1} {s2}"
 
@@ -420,19 +434,20 @@ def analyze(
         except Exception:
             current_price = None
 
-    # Score each axis
-    raw_scores = {
+    # Score all axes — only WEIGHTS axes drive confidence; others are informational.
+    all_scores = {
         "technical":   score_technical(hist),
         "fundamental": score_fundamental(fundamentals),
-        "sentiment":   score_sentiment(ticker, finnhub_key),
         "macro":       score_macro(macro, ticker),
+        # Informational — fetched for alert context, not weighted in score.
+        "sentiment":   score_sentiment(ticker, finnhub_key),
         "insider":     score_insider(ticker, finnhub_key),
     }
 
     # Clamp all to [0, 100]
-    scores = {k: max(0.0, min(100.0, v)) for k, v in raw_scores.items()}
+    scores = {k: max(0.0, min(100.0, v)) for k, v in all_scores.items()}
 
-    # Weighted confidence
+    # Weighted confidence (3-axis only)
     confidence_raw = sum(scores[axis] * weight for axis, weight in WEIGHTS.items())
     confidence_raw = apply_macro_overlay(confidence_raw, macro, ticker, is_energy)
     confidence = round(max(0.0, min(100.0, confidence_raw)), 1)
@@ -469,9 +484,14 @@ def analyze(
                     f"(${max_cost:.0f}) — consider wider stop or skip."
                 )
 
-    # Check USD cross-listing
-    is_usd = ".TO" not in ticker and ".V" not in ticker
-    fx_warning = "USD trade — add 1.5% FX drag to cost estimate." if is_usd else None
+    # FX / CDR flags
+    if ticker.endswith(".NE"):
+        # CDR: CAD-settled, FX-hedged — no FX drag, but note for user context
+        fx_warning = "CAD-settled CDR (FX-hedged). No FX drag; check CDR premium/discount to NAV."
+    elif ".TO" not in ticker and ".V" not in ticker:
+        fx_warning = "USD trade — add 1.5% FX drag to cost estimate."
+    else:
+        fx_warning = None
 
     thesis = _generate_thesis(ticker, rec, scores, fundamentals, macro)
 

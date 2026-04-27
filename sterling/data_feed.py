@@ -142,14 +142,27 @@ def get_history(ticker: str, period: str = "1y", interval: str = "1d") -> pd.Dat
 # ── FUNDAMENTALS ─────────────────────────────────────────────────────────────
 
 def get_fundamentals(ticker: str) -> dict:
-    """Key fundamentals with 24h disk cache. Returns empty dict on failure."""
-    cache_key = f"fundamentals_{ticker}"
+    """Key fundamentals with 24h disk cache. Returns empty dict on failure.
+
+    For CDR tickers (.NE), redirects the yfinance lookup to the underlying US symbol
+    so P/E, FCF yield, etc. are populated (CDRs have no standalone fundamental data).
+    """
+    # CDR redirect: fetch fundamentals from the US underlying
+    fetch_ticker = ticker
+    if ticker.endswith(".NE"):
+        try:
+            from sterling.cdr_mapping import CDR_UNIVERSE
+            fetch_ticker = CDR_UNIVERSE.get(ticker, ticker.replace(".NE", ""))
+        except ImportError:
+            fetch_ticker = ticker.replace(".NE", "")
+
+    cache_key = f"fundamentals_{fetch_ticker}"
     cached = _cache_read(cache_key, _FUNDAMENTAL_TTL)
     if cached:
         return cached
 
     def _fetch():
-        t = yf.Ticker(ticker)
+        t = yf.Ticker(fetch_ticker)
         info = t.info or {}
 
         pe = info.get("trailingPE") or info.get("forwardPE")
@@ -193,8 +206,9 @@ def get_fundamentals(ticker: str) -> dict:
 
 def get_news_sentiment(ticker: str, api_key: str) -> dict:
     """Finnhub news sentiment. Returns score in [-1, 1] range."""
-    # Strip .TO/.V suffix for Finnhub (uses US symbols or base)
-    base = ticker.replace(".TO", "").replace(".V", "").replace(".TSX", "")
+    # Strip exchange suffixes for Finnhub (uses US symbols or base)
+    # .NE CDRs redirect to their underlying US symbol
+    base = ticker.replace(".TO", "").replace(".V", "").replace(".TSX", "").replace(".NE", "")
 
     cache_key = f"sentiment_{base}"
     cached = _cache_read(cache_key, _SENTIMENT_TTL)
@@ -247,7 +261,7 @@ def get_news_sentiment(ticker: str, api_key: str) -> dict:
 
 def get_insider_activity(ticker: str, api_key: str) -> dict:
     """Finnhub insider transactions. Returns buy/sell ratio and net shares."""
-    base = ticker.replace(".TO", "").replace(".V", "")
+    base = ticker.replace(".TO", "").replace(".V", "").replace(".NE", "")
 
     cache_key = f"insider_{base}"
     cached = _cache_read(cache_key, _FUNDAMENTAL_TTL)

@@ -196,5 +196,9 @@ class TestWeights:
         assert total == pytest.approx(1.0)
 
     def test_all_axes_present(self):
-        expected = {"technical", "fundamental", "sentiment", "macro", "insider"}
-        assert set(analyst.WEIGHTS.keys()) == expected
+        # 3-axis model: sentiment and insider are informational only, not in WEIGHTS
+        assert set(analyst.WEIGHTS.keys()) == {"technical", "fundamental", "macro"}
+
+    def test_informational_axes_defined(self):
+        assert "sentiment" in analyst.INFORMATIONAL_AXES
+        assert "insider" in analyst.INFORMATIONAL_AXES

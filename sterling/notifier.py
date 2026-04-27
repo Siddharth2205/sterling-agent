@@ -71,8 +71,12 @@ def _record_sent(ticker: str, confidence: float, rec: str) -> None:
         conn.close()
 
 
-def _format_message(signal: dict) -> str:
-    """Format a signal dict into a Telegram-ready message (Markdown V2)."""
+def _format_message(signal: dict, paper: bool = False) -> str:
+    """Format a signal dict into a Telegram-ready message (Markdown V2).
+
+    When paper=True the header is prefixed with "📝 PAPER TRADE —" so the
+    recipient can never mistake a paper alert for a live execution signal.
+    """
     ticker = signal.get("ticker", "???")
     rec = signal.get("recommendation", "HOLD")
     conf = signal.get("confidence", 0)
@@ -94,20 +98,26 @@ def _format_message(signal: dict) -> str:
     }.get(rec, "⚪")
 
     scores = signal.get("signals", {})
-    score_line = (
+    # Core axes drive the confidence score (3-axis model).
+    core_line = (
         f"T:{scores.get('technical', 0):.0f} "
         f"F:{scores.get('fundamental', 0):.0f} "
-        f"S:{scores.get('sentiment', 0):.0f} "
-        f"M:{scores.get('macro', 0):.0f} "
-        f"I:{scores.get('insider', 0):.0f}"
+        f"M:{scores.get('macro', 0):.0f}"
+    )
+    # Sentiment and insider are informational annotations, not score inputs.
+    info_line = (
+        f"Sent:{scores.get('sentiment', 0):.0f} "
+        f"Ins:{scores.get('insider', 0):.0f}"
     )
 
+    paper_prefix = "📝 *PAPER TRADE* — " if paper else ""
     lines = [
-        f"*{rec_emoji} STERLING SIGNAL*",
+        f"{paper_prefix}*{rec_emoji} STERLING SIGNAL*",
         f"",
         f"*{ticker}* — `{rec}` | Confidence: *{conf:.0f}/100*",
         f"",
-        f"📊 Axes: `{score_line}`",
+        f"📊 Score axes: `{core_line}`",
+        f"📰 Context \\(informational\\): `{info_line}`",
         f"",
     ]
 
@@ -145,10 +155,14 @@ def send_signal(
     bot_token: str,
     chat_id: str,
     force: bool = False,
+    paper: bool = False,
 ) -> bool:
     """
     Send a signal alert via Telegram.
     Returns True if sent, False if throttled or failed.
+
+    paper=True prefixes the message with "📝 PAPER TRADE —" so the alert
+    is visually distinct from a live signal. Throttle logic is unchanged.
     """
     ticker = signal.get("ticker", "UNKNOWN")
     confidence = signal.get("confidence", 0)
@@ -158,7 +172,7 @@ def send_signal(
         logger.info(f"Throttled: {ticker} alert suppressed (within 4h window)")
         return False
 
-    message = _format_message(signal)
+    message = _format_message(signal, paper=paper)
 
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
     payload = {

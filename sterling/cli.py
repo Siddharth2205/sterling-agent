@@ -8,20 +8,25 @@ from pathlib import Path
 
 import click
 
-# Ensure UTF-8 output on Windows consoles (cp1252 by default)
-if hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "buffer"):
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("sterling")
+
+
+def _fix_windows_utf8() -> None:
+    # Rewrap stdout/stderr for UTF-8 on Windows cp1252 consoles.
+    # Guarded by hasattr(.buffer) so it is a no-op under Click's CliRunner
+    # (which supplies io.StringIO without a .buffer attribute).
+    if hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "buffer"):
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
 @click.group()
 @click.version_option(version="0.1.0", prog_name="sterling")
 def cli():
     """Sterling -- Canadian portfolio analysis agent."""
+    _fix_windows_utf8()
 
 
 # -- Portfolio commands --------------------------------------------------------
@@ -121,15 +126,33 @@ def show_portfolio():
 @click.option("--ticker", "-t", multiple=True, help="Specific tickers to analyze (default: portfolio + watchlist)")
 @click.option("--notify/--no-notify", default=False, help="Send Telegram alerts for actionable signals")
 @click.option("--json-output", is_flag=True, help="Output raw JSON")
-def analyze(ticker, notify, json_output):
+@click.option("--paper/--no-paper", default=False,
+              help="Paper-trade mode: log all actionable signals to data/paper_trades.csv "
+                   "and prefix Telegram alerts with 'PAPER TRADE'")
+@click.option("--watchlist-from-env", is_flag=True, default=False,
+              help="Read tickers from STERLING_WATCHLIST env var (comma-separated). "
+                   "Takes precedence over data/portfolio.json. Required in CI.")
+def analyze(ticker, notify, json_output, paper, watchlist_from_env):
     """Run multi-factor analysis on portfolio and watchlist."""
+    import os
     from sterling import config, analyst, portfolio, notifier
 
     cfg = config.validate_optional()
     if cfg["missing"]:
         click.echo(f"Warning: missing env vars {cfg['missing']} -- some signals will be degraded", err=True)
 
-    if ticker:
+    if watchlist_from_env:
+        raw = os.environ.get("STERLING_WATCHLIST", "")
+        if not raw.strip():
+            click.echo(
+                "[ERR] --watchlist-from-env set but STERLING_WATCHLIST is empty or not set.\n"
+                "      Add STERLING_WATCHLIST as a GitHub Secret (comma-separated tickers,\n"
+                "      e.g. SHOP.TO,ENB.TO,NVDA.NE).",
+                err=True,
+            )
+            raise SystemExit(1)
+        tickers = [t.strip().upper() for t in raw.split(",") if t.strip()]
+    elif ticker:
         tickers = list(ticker)
     else:
         port = portfolio.get_portfolio()
@@ -139,7 +162,8 @@ def analyze(ticker, notify, json_output):
         click.echo("No tickers. Add holdings with 'sterling add' or watchlist with 'sterling watch'.")
         return
 
-    click.echo(f"Analyzing {len(tickers)} tickers: {', '.join(tickers)}\n")
+    mode_tag = " [PAPER MODE]" if paper else ""
+    click.echo(f"Analyzing {len(tickers)} tickers: {', '.join(tickers)}{mode_tag}\n")
 
     results = analyst.analyze_portfolio(tickers, config.FINNHUB_API_KEY or "")
 
@@ -149,10 +173,22 @@ def analyze(ticker, notify, json_output):
 
     _print_analysis_table(results)
 
-    if notify and config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
-        actionable = [r for r in results if r.get("recommendation") in ("BUY", "ACCUMULATE", "SELL", "TRIM")]
+    actionable = [r for r in results if r.get("recommendation") in ("BUY", "ACCUMULATE", "SELL", "TRIM")]
+
+    if paper and actionable:
+        from sterling import paper_log
         for signal in actionable:
-            notifier.send_signal(signal, config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHAT_ID)
+            logged_path = paper_log.log_signal(signal)
+        click.echo(f"\n[PAPER] {len(actionable)} signal(s) logged to {logged_path}")
+
+    if notify and config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+        for signal in actionable:
+            notifier.send_signal(
+                signal,
+                config.TELEGRAM_BOT_TOKEN,
+                config.TELEGRAM_CHAT_ID,
+                paper=paper,
+            )
         click.echo(f"\n[OK] Notifications sent for {len(actionable)} actionable signals.")
 
 
@@ -209,26 +245,40 @@ def _print_analysis_table(results: list):
 @click.option("--capital", default=1000.0, help="Starting capital in CAD", show_default=True)
 @click.option("--threshold", default=65.0, help="Signal score threshold to enter", show_default=True)
 @click.option("--hold-days", default=20, help="Max hold period in trading days", show_default=True)
-def backtest(years, capital, threshold, hold_days):
-    """Walk-forward backtest on TSX 60 constituents."""
+@click.option("--min-hold-days", default=10,
+              help="Min days held before a time-exit fires (stop-loss still overrides)", show_default=True)
+@click.option("--quick-signal", is_flag=True, default=False,
+              help="Use technical-only signal instead of full 5-axis (faster, less accurate)")
+@click.option("--universe", default="tsx-cdr",
+              type=click.Choice(["tsx", "cdr", "tsx-cdr"], case_sensitive=False),
+              help="Ticker universe to scan", show_default=True)
+def backtest(years, capital, threshold, hold_days, min_hold_days, quick_signal, universe):
+    """Walk-forward backtest on TSX / CDR tickers (5-axis signal by default)."""
     from sterling.backtester import run_backtest, save_results
 
-    click.echo(f"Running {years}-year backtest on ${capital:.0f} CAD capital...")
-    click.echo("This may take 2-5 minutes while downloading price history.\n")
+    mode = "quick technical" if quick_signal else "full 5-axis"
+    click.echo(f"Running {years}-year backtest on ${capital:.0f} CAD [{mode} signal, universe={universe}]...")
+    if not quick_signal:
+        click.echo("  NOTE: fundamental scores use current-snapshot values (not point-in-time).")
+    click.echo("This may take 3-8 minutes while downloading price history.\n")
 
     result = run_backtest(
         years=years,
         capital_cad=capital,
         hold_days=hold_days,
+        min_hold_days=min_hold_days,
         signal_threshold=threshold,
+        use_full_signal=not quick_signal,
+        universe=universe,
     )
 
     out_dir = save_results(result)
 
     stats = result.stats
-    click.echo("\n" + "=" * 52)
+    click.echo("\n" + "=" * 56)
     click.echo("  STERLING BACKTEST RESULTS")
-    click.echo("=" * 52)
+    click.echo("=" * 56)
+    click.echo(f"  Signal mode:      {stats.get('signal_mode', '?')}")
     click.echo(f"  Period:           {stats.get('start_date')} -> {stats.get('end_date')}")
     click.echo(f"  Starting capital: ${stats.get('capital_cad', 0):,.2f} CAD")
     click.echo(f"  Final value:      ${stats.get('final_value_cad', 0):,.2f} CAD")
@@ -241,13 +291,291 @@ def backtest(years, capital, threshold, hold_days):
     click.echo(f"  Profit factor:    {stats.get('profit_factor', 0)}")
     click.echo(f"  Avg R:R:          {stats.get('avg_rr', 0):.2f}x")
     click.echo(f"  Total trades:     {stats.get('total_trades', 0)}")
-    click.echo("-" * 52)
+    click.echo(f"  Min hold days:    {stats.get('min_hold_days', '?')}")
+    click.echo("-" * 56)
     click.echo(f"  XIC.TO CAGR:      {stats.get('benchmark_xic_cagr_pct', 0):+.2f}% (after 1.5% FX drag)")
     beats = stats.get("beats_benchmark", False)
     verdict = "[OK] Strategy beats benchmark" if beats else "[!!] Strategy underperforms benchmark"
     click.echo(f"  Verdict:          {verdict}")
-    click.echo("=" * 52)
+    click.echo("=" * 56)
     click.echo(f"\n  Charts and trade log saved to: {out_dir}")
+
+
+# -- Sweep --------------------------------------------------------------------
+
+@cli.command()
+@click.option("--years", default=3, help="Years of history", show_default=True)
+@click.option("--capital", default=1000.0, help="Starting capital in CAD", show_default=True)
+@click.option("--hold-days", default=20, help="Max hold period in trading days", show_default=True)
+@click.option("--universe", default="tsx-cdr",
+              type=click.Choice(["tsx", "cdr", "tsx-cdr"], case_sensitive=False),
+              help="Ticker universe to scan", show_default=True)
+def sweep(years, capital, hold_days, universe):
+    """Auto-calibrate threshold from score distribution, then run 3x3 parameter sweep.
+
+    Calibration: scans all signals across history, computes p70/p80/p85.
+    Sweep: entry_threshold {p70, p80, p85} x min_hold_days {5, 10, 20} = 9 combos.
+    Downloads market data once; all runs share the same data bundle.
+    Results saved to data/sweep_<timestamp>/.
+    """
+    import numpy as np
+    from sterling.backtester import (
+        load_backtest_data, scan_score_distribution, sweep_backtests,
+        save_sweep_results,
+    )
+
+    click.echo(f"Running calibration + sweep ({years}yr, ${capital:.0f} CAD, universe={universe})...")
+    click.echo("  Step 1/2: downloading market data + scanning score distribution...")
+    click.echo("  (may take 5-10 minutes)\n")
+
+    bundle = load_backtest_data(years=years, use_full_signal=True, universe=universe)
+    records = scan_score_distribution(years=years, _preloaded=bundle)
+
+    if not records:
+        click.echo("[ERR] Calibration scan returned no scores. Check internet connection.", err=True)
+        return
+
+    post_scores = [r["post_score"] for r in records]
+    p70 = round(float(np.percentile(post_scores, 70)), 2)
+    p80 = round(float(np.percentile(post_scores, 80)), 2)
+    p85 = round(float(np.percentile(post_scores, 85)), 2)
+
+    click.echo(f"  Calibration complete: {len(records):,} observations")
+    click.echo(f"  p70={p70:.2f}  p80={p80:.2f}  p85={p85:.2f}")
+    click.echo(f"\n  Step 2/2: running 9 backtest combinations...\n")
+
+    results = sweep_backtests(
+        years=years,
+        capital_cad=capital,
+        thresholds=(p70, p80, p85),
+        min_holds=(5, 10, 20),
+        hold_days=hold_days,
+        _preloaded=bundle,
+        universe=universe,
+    )
+
+    out_dir = save_sweep_results(results)
+
+    xic_cagr = results[0]["result"].stats.get("benchmark_xic_cagr_pct", 0)
+
+    click.echo("\n" + "=" * 82)
+    click.echo("  PARAMETER SWEEP — calibrated threshold x min_hold_days  (3-axis model)")
+    click.echo("=" * 82)
+    click.echo(f"  {'Thresh':>8}  {'Pct':>5}  {'MinHold':>7}  {'CAGR%':>7}  {'Sharpe':>7}  "
+               f"{'MaxDD%':>7}  {'Trades':>7}  {'Overlay':>7}  {'Beats?':>6}")
+    click.echo(f"  {'-'*8}  {'-'*5}  {'-'*7}  {'-'*7}  {'-'*7}  {'-'*7}  {'-'*7}  {'-'*7}  {'-'*6}")
+
+    pct_label = {p70: "p70", p80: "p80", p85: "p85"}
+    best = max(results, key=lambda x: x["result"].stats.get("cagr_pct", -999))
+    for item in results:
+        s = item["result"].stats
+        cagr = s.get("cagr_pct", 0)
+        sharpe = s.get("sharpe", 0)
+        dd = s.get("max_drawdown_pct", 0)
+        trades = s.get("total_trades", 0)
+        overlay = s.get("macro_overlay_fire_count", 0)
+        beats = "YES" if s.get("beats_benchmark") else "no"
+        marker = " <--" if item is best else ""
+        pct = pct_label.get(item["threshold"], "")
+        click.echo(
+            f"  {item['threshold']:>8.2f}  {pct:>5}  {item['min_hold']:>7}  {cagr:>+7.2f}  "
+            f"{sharpe:>7.3f}  {dd:>7.2f}  {trades:>7}  {overlay:>7}  {beats:>6}{marker}"
+        )
+
+    click.echo("-" * 72)
+    click.echo(f"  XIC.TO benchmark CAGR: {xic_cagr:+.2f}% (after 1.5% FX drag)")
+
+    # Macro overlay report across all runs
+    total_overlay = sum(
+        item["result"].stats.get("macro_overlay_fire_count", 0) for item in results
+    )
+    click.echo(f"  Macro overlay fires (all runs combined): {total_overlay}")
+    if total_overlay == 0:
+        click.echo("  [!!] Overlay fired ZERO times. Check VIX/TSX data fetch.")
+
+    best_s = best["result"].stats
+    if best_s.get("beats_benchmark", False):
+        click.echo("  Best combo beats XIC.TO. Proceed to expanded validation.")
+    else:
+        click.echo("  No combo beats XIC.TO. Strategy needs further development before deployment.")
+    click.echo("=" * 72)
+    click.echo(f"\n  Full results saved to: {out_dir}")
+
+
+# -- Calibrate ----------------------------------------------------------------
+
+@cli.command()
+@click.option("--years", default=3, help="Years of history to scan", show_default=True)
+@click.option("--universe", default="tsx-cdr",
+              type=click.Choice(["tsx", "cdr", "tsx-cdr"], case_sensitive=False),
+              help="Ticker universe to scan", show_default=True)
+def calibrate(years, universe):
+    """Scan score distribution across history; output percentile table.
+
+    Run this after changing signal weights or universe. Use the printed
+    percentile values to set --threshold in 'sterling backtest' and 'sterling sweep'.
+    """
+    import csv as csv_mod
+    from sterling.backtester import scan_score_distribution, load_backtest_data, _DATA_DIR
+    from datetime import datetime as dt
+
+    click.echo(f"Scanning {years}-year score distribution (3-axis model, universe={universe})...")
+    click.echo("Downloads market data once — may take 3-5 minutes.\n")
+
+    records = scan_score_distribution(years=years, universe=universe)
+
+    if not records:
+        click.echo("[ERR] No score records returned. Check internet connection.", err=True)
+        return
+
+    scores = [r["post_score"] for r in records]
+    import numpy as np
+    pcts = [50, 60, 70, 75, 80, 85, 90, 95]
+    vals = {p: round(float(np.percentile(scores, p)), 2) for p in pcts}
+
+    # Save distribution CSV
+    ts = dt.utcnow().strftime("%Y%m%d_%H%M%S")
+    out = _DATA_DIR / f"calibration_{ts}"
+    out.mkdir(parents=True, exist_ok=True)
+    csv_path = out / "score_distribution.csv"
+    with open(csv_path, "w", newline="") as f:
+        w = csv_mod.DictWriter(f, fieldnames=records[0].keys())
+        w.writeheader()
+        w.writerows(records)
+
+    # Count risk-off days
+    risk_off_count = sum(1 for r in records if r["pre_score"] != r["post_score"])
+
+    click.echo(f"  Observations: {len(records):,} (ticker × scan-date)")
+    click.echo(f"  Unique tickers: {len(set(r['ticker'] for r in records))}")
+    click.echo(f"  Macro overlay fired: {risk_off_count:,} times ({risk_off_count/len(records)*100:.1f}%)")
+    click.echo("")
+    click.echo("  Percentile   Score threshold")
+    click.echo("  ----------   ---------------")
+    for p, v in vals.items():
+        note = " <-- suggested entry threshold (p80)" if p == 80 else ""
+        click.echo(f"  p{p:<9}   {v:.2f}{note}")
+    click.echo("")
+    click.echo(f"  Score range: min={min(scores):.1f}  mean={np.mean(scores):.1f}  max={max(scores):.1f}")
+    click.echo(f"\n  Distribution CSV saved to: {csv_path}")
+    click.echo(f"\n  Use these values with: sterling sweep")
+    click.echo(f"  Example: sterling backtest --threshold {vals[80]}")
+
+
+# -- Diagnose -----------------------------------------------------------------
+
+@cli.command()
+@click.option("--dir", "backtest_dir", default=None,
+              help="Path to backtest directory (default: most recent data/backtest_*/)")
+def diagnose(backtest_dir):
+    """Diagnose the most recent backtest: cash exposure, signal distribution, cost drag."""
+    from sterling.diagnostics import find_latest_backtest, run_diagnostics
+
+    if backtest_dir:
+        bt_path = Path(backtest_dir)
+    else:
+        bt_path = find_latest_backtest()
+
+    if bt_path is None or not bt_path.exists():
+        click.echo("[ERR] No backtest directory found. Run 'sterling backtest' first.", err=True)
+        return
+
+    click.echo(f"Reading backtest from: {bt_path}\n")
+    report = run_diagnostics(bt_path)
+
+    stats = report["stats"]
+    cash = report["cash_exposure"]
+    scores = report["score_distribution"]
+    macro = report["macro_overlay"]
+    drag = report["cost_drag"]
+
+    click.echo("=" * 58)
+    click.echo("  STERLING BACKTEST DIAGNOSTIC REPORT")
+    click.echo("=" * 58)
+    click.echo(f"  Period:       {stats.get('start_date', '?')} to {stats.get('end_date', '?')}")
+    click.echo(f"  Duration:     {stats.get('years', '?')} years")
+    click.echo(f"  Total trades: {stats.get('total_trades', drag.get('total_trades', '?'))}")
+    click.echo(f"  CAGR:         {stats.get('cagr_pct', '?'):+}%  (benchmark XIC: {stats.get('benchmark_xic_cagr_pct', '?'):+}%)")
+    click.echo("")
+
+    # ── 1. Cash exposure ──────────────────────────────────────────────────────
+    click.echo("1. CASH EXPOSURE")
+    click.echo("-" * 58)
+    if cash:
+        click.echo(f"   Trading days analyzed:        {cash['total_trading_days']}")
+        click.echo(f"   Days fully in cash:           {cash['days_in_cash']}  ({cash['pct_in_cash']}%)")
+        click.echo(f"   Days holding >= 1 position:   {cash['days_with_positions']}  ({cash['pct_with_positions']}%)")
+        click.echo(f"   Peak simultaneous positions:  {cash['peak_simultaneous_positions']}")
+        if cash["pct_in_cash"] > 50:
+            click.echo(f"   [!!] Strategy was in CASH more than half the time.")
+            click.echo(f"        During a bull run, this is the largest alpha drag.")
+    else:
+        click.echo("   [N/A] Could not determine date range from stats.")
+    click.echo("")
+
+    # ── 2. Score distribution ─────────────────────────────────────────────────
+    click.echo("2. CONFIDENCE SCORE DISTRIBUTION AT ENTRY")
+    click.echo("-" * 58)
+    if scores:
+        click.echo(f"   n={scores['count']}  min={scores['min']}  Q1={scores['q1']}  "
+                   f"median={scores['median']}  Q3={scores['q3']}  max={scores['max']}  "
+                   f"mean={scores['mean']}")
+        click.echo("")
+        click.echo("   Score  | Distribution (each # ~ 1 trade)")
+        click.echo(scores["histogram"])
+    else:
+        click.echo("   [N/A] 'score' column not recorded in this backtest run.")
+        click.echo("         The backtester has now been updated to save entry scores.")
+        click.echo("         Re-run 'sterling backtest' to capture score data.")
+        click.echo("")
+        click.echo("   NOTE: This backtest used _quick_signal() — a technical-only scorer")
+        click.echo("         (RSI + MACD + SMA cross). The full 5-axis confidence score")
+        click.echo("         (technical + fundamental + sentiment + macro + insider) is")
+        click.echo("         NOT used in backtesting. Entry threshold was 65.0/100.")
+    click.echo("")
+
+    # ── 3. Macro overlay demotions ────────────────────────────────────────────
+    click.echo("3. MACRO OVERLAY DEMOTIONS (apply_macro_overlay)")
+    click.echo("-" * 58)
+    if macro["has_overlay_data"]:
+        click.echo(f"   Trades where overlay fired:          {macro['overlay_applied_count']}")
+        click.echo(f"   BUY signals demoted by overlay:      {macro['demoted_buy_to_lower']}")
+    else:
+        click.echo(f"   BUY signals demoted to HOLD/lower:   0  (structural zero)")
+        click.echo("")
+        click.echo("   REASON: The backtester calls _quick_signal() which is a")
+        click.echo("           technical-only scorer. apply_macro_overlay() is never")
+        click.echo("           invoked during walk-forward simulation.")
+        click.echo("")
+        click.echo("   IMPLICATION: The live analyst applies a -15pt downgrade when")
+        click.echo("           VIX > 25 or TSX intraday < -2%. In a backtest covering")
+        click.echo("           volatile periods (e.g. 2022 rate shock, 2024 vol spikes)")
+        click.echo("           this overlay would suppress some entries — potentially")
+        click.echo("           improving Sharpe by avoiding whipsaw trades, at the")
+        click.echo("           cost of missed early-recovery entries.")
+    click.echo("")
+
+    # ── 4. Gross vs net return ────────────────────────────────────────────────
+    click.echo("4. GROSS vs NET RETURN  (slippage & FX drag)")
+    click.echo("-" * 58)
+    click.echo(f"   Slippage rate:              {drag['round_trip_drag_pct']:.3f}% round-trip per trade")
+    click.echo(f"   Total trades:               {drag['total_trades']}")
+    click.echo(f"   Gross PnL (pre-slippage):   ${drag['gross_pnl_cad']:+.2f} CAD")
+    click.echo(f"   Net PnL (post-slippage):    ${drag['net_pnl_cad']:+.2f} CAD")
+    click.echo(f"   Total slippage cost:        ${drag['total_slippage_cost_cad']:+.2f} CAD  "
+               f"({drag['slippage_as_pct_of_gross']:.2f}% of gross)")
+    click.echo(f"   Avg slippage per trade:     ${drag['implied_slippage_per_trade']:+.2f} CAD")
+    click.echo(f"   FX drag on trades:          ${drag['fx_drag_on_trades_cad']:.2f} CAD")
+    click.echo("")
+    click.echo(f"   FX NOTE: {drag['fx_drag_note']}")
+    click.echo("")
+    if abs(drag["total_slippage_cost_cad"]) > 0:
+        total_return = stats.get("total_return_pct", 0)
+        gross_return = total_return - (drag["total_slippage_cost_cad"] / stats.get("capital_cad", 1000) * 100)
+        click.echo(f"   Gross total return (est.):  {gross_return:+.2f}%")
+        click.echo(f"   Net total return:           {total_return:+.2f}%")
+
+    click.echo("=" * 58)
 
 
 # -- Scheduler ----------------------------------------------------------------

@@ -48,6 +48,26 @@ Each axis scores 0–100. Weights reflect typical quant factor alpha rankings fo
 - Benchmark: XIC.TO buy-and-hold with dividends reinvested.
 - Reporting: CAGR, Sharpe, Sortino, max drawdown, win rate, profit factor.
 
+## Backtester Signal Fidelity (Known Approximations)
+
+The walk-forward engine uses a 5-axis composite signal with the following fidelity levels per axis:
+
+| Axis        | Fidelity       | Notes |
+|-------------|----------------|-------|
+| technical   | fully historical | Price history slice used up to scan date — no look-ahead |
+| fundamental | **snapshot proxy** | yfinance returns current-day values, not point-in-time historical. Introduces look-ahead bias in P/E, FCF yield, etc. Accept and document; fixing requires a paid point-in-time data vendor. |
+| sentiment   | neutral 50.0   | No free API provides historical news sentiment compatible with daily walk-forward |
+| macro       | fully historical | VIX (^VIX) and TSX Composite (^GSPTSE) fetched from yfinance per scan date |
+| insider     | neutral 50.0   | Finnhub free tier does not provide dated historical insider transactions |
+
+`apply_macro_overlay()` is now wired into the backtest loop and fires on historical VIX/TSX data.
+
+Previous behaviour (pre-fix): the backtester used `_quick_signal()` — RSI + MACD + SMA only — and never called `apply_macro_overlay()`. This was the primary cause of the measured +5.08% CAGR vs +26.79% XIC.TO: the backtest was not testing Sterling, it was testing a 1990s technical model.
+
+## Backtester Hold Parameters
+- `hold_days` (default 20): maximum bars held before forced time-exit.
+- `min_hold_days` (default 10): minimum bars before a TIME exit can fire. Stop-loss and target exits always override this floor. This prevents churn from weekly scan noise pushing the strategy into a 5-day hold → re-score → sell loop.
+
 ## Wealthsimple Trade
 - No public retail trading API exists. All signals are manual-execution only.
 - The system generates the signal; the human places the order.

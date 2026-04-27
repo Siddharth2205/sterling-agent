@@ -8,6 +8,10 @@ portfolio.json
 data/portfolio.json
 data/notifications.db
 data/backtest_*/
+data/cache/
+data/sweep_*/
+data/calibration_*/
+# paper_trades.csv is intentionally tracked — committed by GitHub Actions after each run
 *.egg-info/
 dist/
 build/
