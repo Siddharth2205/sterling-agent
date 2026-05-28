@@ -238,6 +238,58 @@ def _print_analysis_table(results: list):
             click.echo(f"  {'':12} [!] {r['fx_warning']}")
 
 
+# -- Scan ---------------------------------------------------------------------
+
+@cli.command()
+@click.option("--digest", is_flag=True, help="Send ONE Telegram digest of the top 15 setups")
+def scan(digest):
+    """Scan ~220 tickers for the top 15 setups (read-only, no paper trades)."""
+    from datetime import datetime, timezone
+    from sterling import config
+    from sterling.scanner import run_scan, top_setups, format_scan_digest, send_scan_digest
+
+    cfg = config.validate_optional()
+    if cfg["missing"]:
+        click.echo(f"Warning: missing env vars {cfg['missing']} -- some data will be degraded", err=True)
+
+    def progress(done, total):
+        click.echo(f"  scanned {done}/{total}")
+
+    click.echo("Sterling Scan -- scanning ~220 tickers...\n")
+    results = run_scan(config.FINNHUB_API_KEY or "", progress_cb=progress)
+
+    top = top_setups(results, 15)
+
+    if not top:
+        click.echo("No results. Check internet connection and API keys.")
+        return
+
+    click.echo(f"\n{'#':>3} {'TICKER':<12} {'SCORE':>6} {'REC':<12} {'TOP AXIS':<14} NOTE")
+    click.echo("-" * 85)
+    for i, entry in enumerate(top, 1):
+        cdr_tag = " [CAD-settled]" if entry["is_cdr"] else ""
+        click.echo(
+            f"{i:>3} {entry['ticker']:<12} {entry['score']:>6.1f} {entry['recommendation']:<12} "
+            f"{entry['top_axis']:<14} {entry['note']}{cdr_tag}"
+        )
+
+    click.echo(f"\n  Scanned {len(results)} tickers total. Top 15 by confidence shown above.\n")
+
+    if digest:
+        if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_CHAT_ID:
+            click.echo("[ERR] Telegram credentials not set. Cannot send digest.", err=True)
+            return
+
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        message = format_scan_digest(top, date_str)
+        ok = send_scan_digest(message, config.TELEGRAM_BOT_TOKEN, config.TELEGRAM_CHAT_ID)
+
+        if ok:
+            click.echo("[OK] Scan digest sent to Telegram.")
+        else:
+            click.echo("[ERR] Failed to send scan digest.", err=True)
+
+
 # -- Backtest -----------------------------------------------------------------
 
 @cli.command()
@@ -576,6 +628,91 @@ def diagnose(backtest_dir):
         click.echo(f"   Net total return:           {total_return:+.2f}%")
 
     click.echo("=" * 58)
+
+
+# -- Outcomes -----------------------------------------------------------------
+
+@cli.command()
+@click.option("--summary", is_flag=True, help="Print aggregate outcome statistics")
+@click.option("--by-confidence", is_flag=True, help="Break down outcomes by confidence bucket")
+def outcomes(summary, by_confidence):
+    """Evaluate paper-trade signals against actual price outcomes."""
+    from sterling.outcomes import evaluate_signals, save_outcomes, compute_summary, compute_by_confidence
+
+    click.echo("Fetching price history for paper-trade signals...\n")
+    results = evaluate_signals()
+
+    if not results:
+        click.echo("No paper trades found. Run 'sterling analyze --paper' first.")
+        return
+
+    out_path = save_outcomes(results)
+
+    if summary or by_confidence:
+        stats = compute_summary(results)
+        click.echo("=" * 60)
+        click.echo("  PAPER TRADE OUTCOME SUMMARY")
+        click.echo("=" * 60)
+        click.echo(f"  Total signals (deduplicated):  {stats['total']}")
+        click.echo(f"  Hit target:                    {stats['target']}  ({stats['target']/stats['total']*100:.0f}%)")
+        click.echo(f"  Hit stop:                      {stats['stop']}  ({stats['stop']/stats['total']*100:.0f}%)")
+        click.echo(f"  Expired (day 30):              {stats['expired']}  ({stats['expired']/stats['total']*100:.0f}%)")
+        click.echo(f"  Still open:                    {stats['open']}  ({stats['open']/stats['total']*100:.0f}%)")
+        if stats.get("error", 0):
+            click.echo(f"  Errors:                        {stats['error']}")
+        click.echo("-" * 60)
+        if stats["resolved"]:
+            click.echo(f"  Win rate (resolved):           {stats['win_rate_pct']:.1f}%")
+            click.echo(f"  Avg winning trade:             {stats['avg_win_pct']:+.2f}%")
+            click.echo(f"  Avg losing trade:              {stats['avg_loss_pct']:+.2f}%")
+            click.echo(f"  Profit factor:                 {stats['profit_factor']}")
+            click.echo(f"  Expectancy per trade:          {stats['expectancy_pct']:+.2f}%")
+        else:
+            click.echo("  No resolved trades yet.")
+        click.echo("=" * 60)
+
+        if by_confidence:
+            buckets = compute_by_confidence(results)
+            if buckets:
+                click.echo(f"\n  {'CONFIDENCE':<12} {'SIGNALS':>8} {'WIN%':>7} {'AVG W':>8} {'AVG L':>8} {'PF':>6} {'EXPECT':>8}")
+                click.echo(f"  {'-'*12} {'-'*8} {'-'*7} {'-'*8} {'-'*8} {'-'*6} {'-'*8}")
+                for b in buckets:
+                    pf = f"{b['profit_factor']:.2f}" if b['profit_factor'] != float("inf") else "inf"
+                    click.echo(
+                        f"  {b['bucket']:<12} {b['total']:>8} {b['win_rate_pct']:>6.1f}% "
+                        f"{b['avg_win_pct']:>+7.2f}% {b['avg_loss_pct']:>+7.2f}% {pf:>6} {b['expectancy_pct']:>+7.2f}%"
+                    )
+                click.echo("")
+    else:
+        _print_outcomes_table(results)
+
+    click.echo(f"\n  Outcomes saved to: {out_path}")
+
+
+def _print_outcomes_table(results: list):
+    outcome_colors = {
+        "target":  "\033[32m",
+        "stop":    "\033[31m",
+        "expired": "\033[33m",
+        "open":    "\033[36m",
+        "error":   "\033[35m",
+    }
+    reset = "\033[0m"
+
+    click.echo(f"{'DATE':<12} {'TICKER':<10} {'CONF':>5} {'ENTRY':>8} {'STOP':>8} {'TARGET':>8} {'OUTCOME':<10} {'EXIT':>8} {'PNL%':>8}")
+    click.echo("-" * 87)
+
+    for r in results:
+        col = outcome_colors.get(r["outcome"], "")
+        entry = f"${float(r['entry_price']):.2f}" if r.get("entry_price") else "-"
+        stop = f"${float(r['stop_loss']):.2f}" if r.get("stop_loss") else "-"
+        target = f"${float(r['target']):.2f}" if r.get("target") else "-"
+        exit_p = f"${float(r['exit_price']):.2f}" if r.get("exit_price") else "-"
+        pnl = f"{float(r['realized_pnl_pct']):+.2f}%" if r.get("realized_pnl_pct") not in ("", None) else "-"
+        click.echo(
+            f"{r['timestamp'][:10]:<12} {r['ticker']:<10} {float(r.get('confidence',0)):>5.1f} "
+            f"{entry:>8} {stop:>8} {target:>8} {col}{r['outcome']:<10}{reset} {exit_p:>8} {pnl:>8}"
+        )
 
 
 # -- Scheduler ----------------------------------------------------------------

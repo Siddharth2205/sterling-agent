@@ -81,5 +81,29 @@ Previous behaviour (pre-fix): the backtester used `_quick_signal()` — RSI + MA
 - 12:30 — midday re-score
 - 15:55 — near-close signal (avoids last-minute noise from 15:59 algos)
 
+## Scan Universe Composition
+
+The `sterling scan` command operates on a ~220-ticker universe composed of four segments:
+
+| Segment               | Count | Source                    | Notes                                    |
+|----------------------|-------|---------------------------|------------------------------------------|
+| TSX 60 constituents  | ~60   | `scan_universe.py`        | Major Canadian large-caps across sectors  |
+| TSX mid-caps         | ~55   | `scan_universe.py`        | Liquid mid-cap names not in TSX 60       |
+| CIBC CDR catalog     | ~85   | `cdr_mapping.py` (reused) | US mega/large-caps traded on NEO (.NE)   |
+| TSX-listed ETFs      | ~20   | `scan_universe.py`        | Broad market, sector, and thematic ETFs  |
+
+Deduplication runs at load time (first occurrence wins). CDRs redirect fundamentals and news
+sentiment to the US underlying via `cdr_mapping.get_underlying()` as the existing `analyst.analyze()`
+already does.
+
+Rate-limit safety: Finnhub free tier allows 60 API calls/min. Each ticker may trigger up to 2
+Finnhub calls (news sentiment + insider). The scanner paces at 2 s between tickers (~30 tickers/min
+= ~60 Finnhub calls/min worst-case). The existing 24 h fundamentals disk cache and 4 h sentiment
+cache reduce actual API calls on subsequent runs. A full cold scan takes ~7-8 minutes.
+
+The scan command is read-only: it never writes to `paper_trades.csv`, the notification throttle DB,
+or any part of the `analyze` / `backtest` pipeline. Digest notifications use a separate
+`send_scan_digest()` function that bypasses the throttle entirely.
+
 ## CLI Framework
 - `click` chosen over `typer`: battle-tested, zero implicit magic, better for scripting.
