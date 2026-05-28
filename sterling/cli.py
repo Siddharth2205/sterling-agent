@@ -243,20 +243,30 @@ def _print_analysis_table(results: list):
 @cli.command()
 @click.option("--digest", is_flag=True, help="Send ONE Telegram digest of the top 15 setups")
 def scan(digest):
-    """Scan ~220 tickers for the top 15 setups (read-only, no paper trades)."""
+    """Scan ~190 tickers for the top 15 setups (read-only, no paper trades)."""
     from datetime import datetime, timezone
     from sterling import config
-    from sterling.scanner import run_scan, top_setups, format_scan_digest, send_scan_digest
+    from sterling.scan_universe import get_scan_universe
+    from sterling.scanner import validate_universe, run_scan, top_setups, format_scan_digest, send_scan_digest
 
     cfg = config.validate_optional()
     if cfg["missing"]:
         click.echo(f"Warning: missing env vars {cfg['missing']} -- some data will be degraded", err=True)
 
+    click.echo("Sterling Scan -- validating universe...\n")
+    raw_universe = get_scan_universe()
+    valid, invalid = validate_universe(raw_universe)
+    click.echo(f"  {len(valid)} of {len(raw_universe)} tickers valid")
+    if invalid:
+        click.echo(f"  skipping {len(invalid)}: {', '.join(invalid[:10])}"
+                    + (f" ... +{len(invalid)-10} more" if len(invalid) > 10 else ""))
+    click.echo("")
+
     def progress(done, total):
         click.echo(f"  scanned {done}/{total}")
 
-    click.echo("Sterling Scan -- scanning ~220 tickers...\n")
-    results = run_scan(config.FINNHUB_API_KEY or "", progress_cb=progress)
+    click.echo(f"Scanning {len(valid)} tickers...\n")
+    results = run_scan(config.FINNHUB_API_KEY or "", progress_cb=progress, validated_universe=valid)
 
     top = top_setups(results, 15)
 

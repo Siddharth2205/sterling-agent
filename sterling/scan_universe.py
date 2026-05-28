@@ -1,9 +1,9 @@
-"""Scan universe: ~220 tickers across TSX 60, TSX mid-caps, CIBC CDRs, and ETFs.
+"""Scan universe: ~190 tickers across TSX 60, TSX mid-caps, CIBC CDRs, and ETFs.
 
 Composition (see DECISIONS.md for rationale):
   - TSX 60 constituents:     ~60 names (.TO)
-  - Additional TSX mid-caps: ~55 names (.TO)
-  - CIBC CDR catalog:        ~85 names (.NE) — reused from cdr_mapping.py
+  - Additional TSX mid-caps: ~46 names (.TO)
+  - CIBC CDR catalog:        ~65 names (.NE) — verified resolvable, reused from cdr_mapping.py
   - TSX-listed ETFs:         ~20 names (.TO)
 """
 
@@ -47,16 +47,16 @@ TSX_MIDCAP_TICKERS: list[str] = [
     "AC.TO", "CTC-A.TO", "EMP-A.TO", "PBH.TO", "MTY.TO", "TOY.TO",
     # Technology
     "BB.TO", "LSPD.TO", "KXS.TO", "DCBO.TO", "CLS.TO", "DSG.TO",
-    "TIXT.TO", "MDA.TO",
+    "MDA.TO",
     # Financials
-    "IAG.TO", "CWB.TO", "LB.TO", "ONEX.TO", "ECN.TO", "EFN.TO",
+    "IAG.TO", "LB.TO", "ONEX.TO", "ECN.TO", "EFN.TO",
     # Industrials / engineering
-    "STN.TO", "CIGI.TO", "SJ.TO", "NFI.TO", "GDI.TO",
+    "STN.TO", "CIGI.TO",
     # Energy (not in TSX 60)
-    "OVV.TO", "MEG.TO", "CPG.TO", "BTE.TO", "ARX.TO", "WCP.TO",
-    "PEY.TO", "TVE.TO", "ERF.TO", "BIR.TO", "TOU.TO", "VET.TO",
+    "OVV.TO", "BTE.TO", "ARX.TO", "WCP.TO",
+    "PEY.TO", "TVE.TO", "BIR.TO", "TOU.TO", "VET.TO",
     # Pipelines / utilities
-    "KEY.TO", "PKI.TO", "ALA.TO", "SPB.TO",
+    "KEY.TO", "ALA.TO", "SPB.TO",
     # Mining
     "AGI.TO", "OR.TO", "LUN.TO", "TECK-B.TO",
     # REITs

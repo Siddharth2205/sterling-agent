@@ -251,8 +251,12 @@ def score_fundamental(fundamentals: dict) -> float:
     return float(np.mean(signals)) if signals else 50.0
 
 
-def score_sentiment(ticker: str, finnhub_key: str) -> float:
-    """News sentiment + Google Trends slope → 0-100."""
+def score_sentiment(ticker: str, finnhub_key: str, skip_trends: bool = False) -> float:
+    """News sentiment + Google Trends slope → 0-100.
+
+    When *skip_trends* is True the pytrends call is skipped entirely
+    (used by the scan path to avoid 429 rate-limits on ~200 tickers).
+    """
     signals = []
 
     news = data_feed.get_news_sentiment(ticker, finnhub_key)
@@ -260,9 +264,10 @@ def score_sentiment(ticker: str, finnhub_key: str) -> float:
     # Map [-1, 1] → [0, 100]
     signals.append((sent_score + 1) / 2 * 100)
 
-    trends_slope = data_feed.get_trends_slope(ticker)
-    # Map [-1, 1] → [0, 100]
-    signals.append((trends_slope + 1) / 2 * 100)
+    if not skip_trends:
+        trends_slope = data_feed.get_trends_slope(ticker)
+        # Map [-1, 1] → [0, 100]
+        signals.append((trends_slope + 1) / 2 * 100)
 
     return float(np.mean(signals)) if signals else 50.0
 
@@ -404,6 +409,7 @@ def analyze(
     macro: Optional[dict] = None,
     is_energy: bool = False,
     current_price: Optional[float] = None,
+    skip_trends: bool = False,
 ) -> dict:
     """
     Run the full 5-axis analysis on a ticker.
@@ -440,7 +446,7 @@ def analyze(
         "fundamental": score_fundamental(fundamentals),
         "macro":       score_macro(macro, ticker),
         # Informational — fetched for alert context, not weighted in score.
-        "sentiment":   score_sentiment(ticker, finnhub_key),
+        "sentiment":   score_sentiment(ticker, finnhub_key, skip_trends=skip_trends),
         "insider":     score_insider(ticker, finnhub_key),
     }
 

@@ -34,7 +34,7 @@ class TestCDRUniverse:
 
     def test_known_tickers_present(self):
         """Key liquid CDRs must be in the catalog."""
-        required = ["AMZN.NE", "AAPL.NE", "MSFT.NE", "NVDA.NE", "GOOGL.NE",
+        required = ["AMZN.NE", "AAPL.NE", "MSFT.NE", "NVDA.NE", "META.NE",
                     "JPM.NE", "V.NE", "UNH.NE", "JNJ.NE", "XOM.NE"]
         for t in required:
             assert t in cdr_mapping.CDR_UNIVERSE, f"{t} missing from CDR_UNIVERSE"
@@ -94,8 +94,8 @@ class TestEnergyUnderlyings:
     def test_xom_is_energy(self):
         assert "XOM" in cdr_mapping.CDR_ENERGY_UNDERLYINGS
 
-    def test_cvx_is_energy(self):
-        assert "CVX" in cdr_mapping.CDR_ENERGY_UNDERLYINGS
+    def test_only_xom_remains(self):
+        assert cdr_mapping.CDR_ENERGY_UNDERLYINGS == {"XOM"}
 
 
 class TestGetUniverse:

@@ -24,6 +24,20 @@ _FX_TTL = 3600             # 1h seconds
 _fx_cache: dict = {}
 _finnhub_client: Optional[object] = None
 
+_default_retries: int = 3
+_default_delay: float = 2.0
+
+
+def set_scan_mode(enabled: bool = True) -> None:
+    """Reduce retries/delay for the scan path where speed > robustness."""
+    global _default_retries, _default_delay
+    if enabled:
+        _default_retries = 1
+        _default_delay = 0.5
+    else:
+        _default_retries = 3
+        _default_delay = 2.0
+
 
 def _get_finnhub(api_key: str):
     global _finnhub_client
@@ -57,8 +71,12 @@ def _cache_write(key: str, data: dict) -> None:
         json.dump(data, f)
 
 
-def _retry(fn, retries: int = 3, delay: float = 2.0):
-    """Exponential backoff retry wrapper."""
+def _retry(fn, retries: int | None = None, delay: float | None = None):
+    """Exponential backoff retry wrapper.  Defaults honour set_scan_mode()."""
+    if retries is None:
+        retries = _default_retries
+    if delay is None:
+        delay = _default_delay
     for attempt in range(retries):
         try:
             return fn()

@@ -1,6 +1,6 @@
 """Market scanner -- read-only awareness tool, independent of the paper-trading pipeline.
 
-Scans ~220 tickers across TSX 60, mid-caps, CIBC CDRs, and ETFs.
+Scans ~190 tickers across TSX 60, mid-caps, CIBC CDRs, and ETFs.
 Produces a ranked top-15 table by confidence score.  Optionally sends
 a Telegram digest.  Never writes to paper_trades.csv, the notifications
 throttle DB, or any part of the analyze / backtest pipeline.
@@ -12,10 +12,51 @@ import time
 from typing import Callable, Optional
 
 import requests
+import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_PACE_SECONDS = 2.0
+
+
+def validate_universe(tickers: list[str]) -> tuple[list[str], list[str]]:
+    """Batch-validate tickers via a quick yfinance download.
+
+    Returns (valid, invalid).  On network error assumes all valid so the
+    scan can still attempt them individually.
+    """
+    if not tickers:
+        return [], []
+
+    try:
+        data = yf.download(tickers, period="5d", progress=False, threads=True)
+    except Exception:
+        return list(tickers), []
+
+    if data.empty:
+        return [], list(tickers)
+
+    valid: list[str] = []
+    invalid: list[str] = []
+
+    if len(tickers) == 1:
+        if not data["Close"].dropna().empty:
+            valid.append(tickers[0])
+        else:
+            invalid.append(tickers[0])
+        return valid, invalid
+
+    for ticker in tickers:
+        try:
+            col = data["Close"][ticker]
+            if col.dropna().empty:
+                invalid.append(ticker)
+            else:
+                valid.append(ticker)
+        except (KeyError, TypeError):
+            invalid.append(ticker)
+
+    return valid, invalid
 
 
 def _top_axis(signals: dict) -> str:
@@ -29,6 +70,7 @@ def run_scan(
     finnhub_key: str,
     pace_seconds: float = DEFAULT_PACE_SECONDS,
     progress_cb: Optional[Callable[[int, int], None]] = None,
+    validated_universe: Optional[list[str]] = None,
 ) -> list[dict]:
     """Scan the full universe with rate-limit pacing.
 
@@ -36,11 +78,39 @@ def run_scan(
     Respects Finnhub free tier (60 calls/min) by sleeping *pace_seconds*
     between tickers.  Each ticker may trigger up to 2 Finnhub calls
     (sentiment + insider); 2.0 s gap keeps us at ~60 calls/min worst-case.
+
+    Google Trends calls are disabled in the scan path to avoid 429 rate
+    limits.  Retries are reduced to 1 (vs 3 for the trading path).
+
+    Pass *validated_universe* to supply a pre-validated ticker list
+    (skips the built-in validation step).
     """
     from sterling.scan_universe import get_scan_universe
-    from sterling import analyst, data_feed
+    from sterling import data_feed
 
-    universe = get_scan_universe()
+    if validated_universe is not None:
+        universe = validated_universe
+    else:
+        universe = get_scan_universe()
+        valid, invalid = validate_universe(universe)
+        if invalid:
+            logger.info("Skipping %d invalid tickers: %s", len(invalid), ", ".join(invalid))
+        universe = valid
+
+    data_feed.set_scan_mode(True)
+    try:
+        return _run_scan_inner(universe, finnhub_key, pace_seconds, progress_cb)
+    finally:
+        data_feed.set_scan_mode(False)
+
+
+def _run_scan_inner(
+    universe: list[str],
+    finnhub_key: str,
+    pace_seconds: float,
+    progress_cb: Optional[Callable[[int, int], None]],
+) -> list[dict]:
+    from sterling import analyst, data_feed
 
     try:
         macro = data_feed.get_macro_indicators()
@@ -49,8 +119,8 @@ def run_scan(
 
     energy_bases = {
         "ENB", "SU", "CVE", "CNQ", "TRP", "PPL", "WCP", "ARX",
-        "PEY", "TVE", "XOM", "CVX", "IMO", "ERF", "BIR", "MEG",
-        "BTE", "OVV", "TOU", "VET", "CPG", "FRU",
+        "PEY", "TVE", "XOM", "IMO", "BIR",
+        "BTE", "OVV", "TOU", "VET", "FRU",
     }
 
     results: list[dict] = []
@@ -61,7 +131,10 @@ def run_scan(
         is_energy = base.upper() in energy_bases
 
         try:
-            result = analyst.analyze(ticker, finnhub_key, macro=macro, is_energy=is_energy)
+            result = analyst.analyze(
+                ticker, finnhub_key, macro=macro,
+                is_energy=is_energy, skip_trends=True,
+            )
             results.append(result)
         except Exception as e:
             logger.warning("Scan failed for %s: %s", ticker, e)

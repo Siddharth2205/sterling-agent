@@ -19,13 +19,12 @@ Key properties for Sterling:
 CDR_VOLUME_MIN = 500_000
 
 # CDR_UNIVERSE: {.NE ticker → US underlying yfinance symbol}
-# Source: CIBC CDR program roster (circa 2025).
+# Source: CIBC CDR program roster — verified yfinance-resolvable as of 2026-05.
 # Covers tech, financial, healthcare, consumer, industrial, energy, and semiconductor sectors.
 CDR_UNIVERSE: dict[str, str] = {
     # ── Mega-cap tech ─────────────────────────────────────────────────────────
     "AMZN.NE": "AMZN",
     "AAPL.NE": "AAPL",
-    "GOOGL.NE": "GOOGL",
     "META.NE":  "META",
     "MSFT.NE":  "MSFT",
     "NVDA.NE":  "NVDA",
@@ -37,14 +36,10 @@ CDR_UNIVERSE: dict[str, str] = {
     "ORCL.NE":  "ORCL",
     "IBM.NE":   "IBM",
     "NOW.NE":   "NOW",
-    "SNOW.NE":  "SNOW",
     "PLTR.NE":  "PLTR",
     # ── Cybersecurity ─────────────────────────────────────────────────────────
-    "NET.NE":   "NET",
-    "DDOG.NE":  "DDOG",
     "CRWD.NE":  "CRWD",
     "PANW.NE":  "PANW",
-    "ZS.NE":    "ZS",
     # ── Semiconductors ────────────────────────────────────────────────────────
     "AMD.NE":   "AMD",
     "INTC.NE":  "INTC",
@@ -62,13 +57,7 @@ CDR_UNIVERSE: dict[str, str] = {
     "UBER.NE":  "UBER",
     "ABNB.NE":  "ABNB",
     "PYPL.NE":  "PYPL",
-    "SQ.NE":    "SQ",
     "COIN.NE":  "COIN",
-    "MELI.NE":  "MELI",
-    "SE.NE":    "SE",
-    "SNAP.NE":  "SNAP",
-    "PINS.NE":  "PINS",
-    "RBLX.NE":  "RBLX",
     "SPOT.NE":  "SPOT",
     # ── Financials ────────────────────────────────────────────────────────────
     "JPM.NE":   "JPM",
@@ -80,8 +69,6 @@ CDR_UNIVERSE: dict[str, str] = {
     "BLK.NE":   "BLK",
     "AXP.NE":   "AXP",
     "SPGI.NE":  "SPGI",
-    "ICE.NE":   "ICE",
-    "COF.NE":   "COF",
     # ── Healthcare ────────────────────────────────────────────────────────────
     "JNJ.NE":   "JNJ",
     "UNH.NE":   "UNH",
@@ -90,40 +77,33 @@ CDR_UNIVERSE: dict[str, str] = {
     "ABBV.NE":  "ABBV",
     "LLY.NE":   "LLY",
     "AMGN.NE":  "AMGN",
-    "MRNA.NE":  "MRNA",
     "GILD.NE":  "GILD",
-    "BMY.NE":   "BMY",
     # ── Consumer / Retail ─────────────────────────────────────────────────────
     "WMT.NE":   "WMT",
     "COST.NE":  "COST",
     "HD.NE":    "HD",
-    "MCD.NE":   "MCD",
     "SBUX.NE":  "SBUX",
     "NKE.NE":   "NKE",
     "PG.NE":    "PG",
-    "KO.NE":    "KO",
     "PEP.NE":   "PEP",
     "DIS.NE":   "DIS",
-    "CMCSA.NE": "CMCSA",
     # ── Industrial / Aerospace ────────────────────────────────────────────────
     "BA.NE":    "BA",
     "LMT.NE":   "LMT",
     "RTX.NE":   "RTX",
     "HON.NE":   "HON",
-    "CAT.NE":   "CAT",
     "DE.NE":    "DE",
     "GE.NE":    "GE",
     "MMM.NE":   "MMM",
     # ── Energy ────────────────────────────────────────────────────────────────
     "XOM.NE":   "XOM",
-    "CVX.NE":   "CVX",
 }
 
 # CDR tickers as a list, for convenience
 CDR_TICKERS: list[str] = sorted(CDR_UNIVERSE.keys())
 
 # US underlyings that are energy sector (for oil-crash overlay)
-CDR_ENERGY_UNDERLYINGS = {"XOM", "CVX"}
+CDR_ENERGY_UNDERLYINGS = {"XOM"}
 
 
 def is_cdr(ticker: str) -> bool:

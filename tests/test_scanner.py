@@ -51,7 +51,7 @@ class TestScanUniverse:
 
     def test_approximate_size(self):
         universe = get_scan_universe()
-        assert 200 <= len(universe) <= 250, f"Expected ~220, got {len(universe)}"
+        assert 170 <= len(universe) <= 200, f"Expected ~190, got {len(universe)}"
 
     def test_contains_tsx60_tickers(self):
         universe = get_scan_universe()
@@ -185,12 +185,10 @@ class TestRateLimitPacing:
 
         with patch("sterling.scanner.time.sleep",
                    side_effect=lambda s: sleep_calls.append(s)), \
-             patch("sterling.scan_universe.get_scan_universe",
-                   return_value=small_universe), \
              patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
              patch("sterling.data_feed.get_macro_indicators",
                    return_value={"risk_off": False, "oil_crash": False}):
-            run_scan("fake_key", pace_seconds=2.0)
+            run_scan("fake_key", pace_seconds=2.0, validated_universe=small_universe)
 
         assert len(sleep_calls) == 2  # n-1 sleeps for n tickers
         assert all(s == 2.0 for s in sleep_calls)
@@ -202,12 +200,10 @@ class TestRateLimitPacing:
 
         with patch("sterling.scanner.time.sleep",
                    side_effect=lambda s: sleep_calls.append(s)), \
-             patch("sterling.scan_universe.get_scan_universe",
-                   return_value=["ONLY.TO"]), \
              patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
              patch("sterling.data_feed.get_macro_indicators",
                    return_value={"risk_off": False, "oil_crash": False}):
-            run_scan("fake_key", pace_seconds=2.0)
+            run_scan("fake_key", pace_seconds=2.0, validated_universe=["ONLY.TO"])
 
         assert len(sleep_calls) == 0
 
@@ -218,12 +214,10 @@ class TestRateLimitPacing:
         universe = [f"T{i}.TO" for i in range(25)]
 
         with patch("sterling.scanner.time.sleep"), \
-             patch("sterling.scan_universe.get_scan_universe",
-                   return_value=universe), \
              patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
              patch("sterling.data_feed.get_macro_indicators",
                    return_value={"risk_off": False, "oil_crash": False}):
-            run_scan("fake_key", pace_seconds=0,
+            run_scan("fake_key", pace_seconds=0, validated_universe=universe,
                      progress_cb=lambda done, total: progress_log.append((done, total)))
 
         assert (10, 25) in progress_log
@@ -347,14 +341,12 @@ class TestScanIsolation:
         csv_path = tmp_path / "paper_trades.csv"
         csv_path.write_text("sentinel\n")
 
-        with patch("sterling.scan_universe.get_scan_universe",
-                   return_value=["TEST.TO"]), \
-             patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
+        with patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
              patch("sterling.data_feed.get_macro_indicators",
                    return_value={"risk_off": False, "oil_crash": False}), \
              patch("sterling.scanner.time.sleep"), \
              patch("sterling.paper_log._CSV_PATH", csv_path):
-            run_scan("fake_key", pace_seconds=0)
+            run_scan("fake_key", pace_seconds=0, validated_universe=["TEST.TO"])
 
         assert csv_path.read_text() == "sentinel\n"
 
@@ -363,13 +355,11 @@ class TestScanIsolation:
 
         db_path = tmp_path / "notifications.db"
 
-        with patch("sterling.scan_universe.get_scan_universe",
-                   return_value=["TEST.TO"]), \
-             patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
+        with patch("sterling.analyst.analyze", return_value=MOCK_SIGNAL), \
              patch("sterling.data_feed.get_macro_indicators",
                    return_value={"risk_off": False, "oil_crash": False}), \
              patch("sterling.scanner.time.sleep"), \
              patch("sterling.notifier._DB_PATH", db_path):
-            run_scan("fake_key", pace_seconds=0)
+            run_scan("fake_key", pace_seconds=0, validated_universe=["TEST.TO"])
 
         assert not db_path.exists()
