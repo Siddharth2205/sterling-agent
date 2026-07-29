@@ -5,12 +5,28 @@ An evidence-based pipeline for testing whether a model can actually pick stocks 
 simulation. Built to falsify its own edge before believing it, not to produce confident
 signals.
 
-> **Honest status.** The original heuristic BUY/HOLD/SELL agent was retired: diagnostics
-> showed it had no predictive edge at its trading horizon (see [DIAGNOSIS.md](DIAGNOSIS.md)).
-> The current gradient-boosted model, tested survivorship-free over 10 years, shows a
-> *suggestive but not yet significant* edge (concentrated top-15 ~+17%/yr net, t≈1.5).
-> **Not deployable.** For real capital, a broad index/equal-weight is the honest default.
-> The old agent remains on the `master` branch for reference.
+> **Honest status.** The original heuristic BUY/HOLD/SELL agent was retired — it had no
+> predictive edge at its trading horizon (see [DIAGNOSIS.md](DIAGNOSIS.md)). The rebuilt
+> gradient-boosted model, tested **survivorship-free over 25 years (1998–2026)**, has a
+> **real but thin** edge: a genuine ranking signal that, risk-managed and market-neutral,
+> earns ~5%/yr at a ~0.4 Sharpe with its worst drawdown roughly halved. That is **not
+> deployable retail alpha** — for real capital a broad low-cost index is the honest default —
+> but it is a clean, honestly-validated result. The old agent remains on `master`.
+
+## What the honest testing found
+
+| Stage | Finding |
+|---|---|
+| Original heuristic agent | **No edge** — buy/hold/sell calls were ~a coin flip and lost to the index. |
+| Backtest de-biased | Removed a look-ahead leak (point-in-time fundamentals) and a NaN-bar bug; paused the live loop. |
+| Survivorship-free signal (25y) | **Real ranking skill**: monotonic score quintiles, out-of-sample IC positive in **all 5** time folds. |
+| Naive portfolio (top-N) | Concentration got crushed by crashes; a broad top-20% beats the index on *return* (t=2.06) but **not** risk-adjusted. |
+| Risk-managed market-neutral | **~+5%/yr, ~0.4 Sharpe, drawdown halved** — a genuine market-neutral alpha, but thin. |
+| Adding signals (breadth) | Reversal / low-vol / value all **lost** in 2010–26 → the edge is momentum-flavored and **regime-dependent**. |
+
+**The point of the project is the method, not the strategy:** find a fake edge and kill it,
+find a real one and stress-test it until it's honest, and refuse to deploy on a result that
+doesn't survive. Full story in [FINDINGS.md](FINDINGS.md) (and [DIAGNOSIS.md](DIAGNOSIS.md) for the original agent).
 
 ---
 
