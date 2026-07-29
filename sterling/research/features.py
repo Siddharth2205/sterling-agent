@@ -107,7 +107,7 @@ def build_features(
         step: sample every `step` trading days per ticker
         warmup: skip the first `warmup` bars (need history for 252d features)
     """
-    from sterling.hist_fundamentals import fundamentals_as_of
+    from sterling.research.fundamentals import fundamentals_as_of
 
     market_frames = {k: _market_frame(v) for k, v in benchmarks.items()}
     rows = []

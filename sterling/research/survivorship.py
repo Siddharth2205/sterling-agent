@@ -18,30 +18,21 @@ Pipeline glue:
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 
+from sterling.research import config, store
 from sterling.research.labels import forward_return_with_delisting
 
 logger = logging.getLogger(__name__)
 
-_BULK = Path(__file__).resolve().parents[2] / "data" / "sharadar_bulk"
-_TICKERS = _BULK / "tickers_full.csv"
-_STOCKS = _BULK / "stocks_10Y.csv"
-
-_MID_UP = ("4 - Mid", "5 - Large", "6 - Mega")
+_MID_UP = config.MID_UP
 
 
-def load_tickers_meta(path: Path = _TICKERS) -> pd.DataFrame:
-    df = pd.read_csv(path, low_memory=False)
-    df = df[df["category"].astype(str).str.contains("Common Stock", na=False)].copy()
-    for c in ("firstpricedate", "lastpricedate"):
-        if c in df.columns:
-            df[c] = pd.to_datetime(df[c], errors="coerce")
-    return df
+def load_tickers_meta() -> pd.DataFrame:
+    """Full tickers metadata (incl. delisted), via the DuckDB/Parquet store."""
+    return store.load_tickers()
 
 
 def select_universe(meta: pd.DataFrame, min_scale=_MID_UP) -> set:
@@ -59,35 +50,10 @@ def delisting_map(meta: pd.DataFrame, terminal_return: float = 0.0) -> dict:
     return out
 
 
-def load_prices_bulk(universe: set, stocks_csv: Path = _STOCKS,
-                     chunksize: int = 2_000_000) -> dict[str, pd.DataFrame]:
-    """{ticker: OHLCV df} for the universe, read from the bulk stocks CSV in chunks so
-    the multi-GB file never fully lands in memory. Uses closeadj as the adjusted Close."""
-    cols = ["ticker", "date", "open", "high", "low", "closeadj", "volume"]
-    parts: dict[str, list] = {}
-    for chunk in pd.read_csv(stocks_csv, usecols=lambda c: c in cols,
-                             chunksize=chunksize, low_memory=False):
-        chunk = chunk[chunk["ticker"].isin(universe)]
-        if chunk.empty:
-            continue
-        for tk, g in chunk.groupby("ticker"):
-            parts.setdefault(tk, []).append(g)
-
-    out: dict[str, pd.DataFrame] = {}
-    for tk, gs in parts.items():
-        g = pd.concat(gs).sort_values("date")
-        idx = pd.DatetimeIndex(pd.to_datetime(g["date"]).dt.tz_localize(None).dt.normalize())
-        df = pd.DataFrame({
-            "Open": pd.to_numeric(g["open"], errors="coerce").to_numpy(),
-            "High": pd.to_numeric(g["high"], errors="coerce").to_numpy(),
-            "Low": pd.to_numeric(g["low"], errors="coerce").to_numpy(),
-            "Close": pd.to_numeric(g["closeadj"], errors="coerce").to_numpy(),
-            "Volume": pd.to_numeric(g["volume"], errors="coerce").to_numpy(),
-        }, index=idx)
-        df = df[df["Close"].notna()]
-        if len(df) >= 250:
-            out[tk] = df
-    return out
+def load_prices_bulk(universe: set) -> dict[str, pd.DataFrame]:
+    """{ticker: OHLCV df} for the universe, via the DuckDB/Parquet store (fast, low-mem).
+    Delisted names' series end naturally at their last trading day."""
+    return store.load_prices(universe)
 
 
 def add_labels(feat_df: pd.DataFrame, prices: dict[str, pd.DataFrame],

@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from sterling import validate
+from sterling.research import validate
 
 
 def _bundle_one_ticker(closes, tk="AAA.TO", start="2024-01-01"):
