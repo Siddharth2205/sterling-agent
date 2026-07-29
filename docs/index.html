@@ -3,162 +3,409 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sterling — Strategy Search Dashboard</title>
+<title>Sterling — Autonomous Strategy Research</title>
 <style>
   :root{
-    --bg:#f7f8fa; --surface:#ffffff; --ink:#1a1d24; --muted:#5b6472; --line:#e6e9ef;
-    --accent:#3b6ea5; --good:#1f9d55; --bad:#d64545; --warn:#c98a12;
-    --shadow:0 1px 3px rgba(20,25,35,.06),0 6px 24px rgba(20,25,35,.05);
-    --radius:14px;
+    --bg:#f5f7fa; --surface:#ffffff; --surface2:#f0f3f7; --ink:#141922; --muted:#5a6472;
+    --line:#e4e8ef; --accent:#3f6fd1; --accent2:#7aa0e8; --good:#189a5b; --bad:#d64545;
+    --warn:#c88a12; --grid:#eef1f6;
+    --shadow:0 1px 2px rgba(20,25,35,.05),0 8px 30px rgba(20,25,35,.06);
+    --radius:16px; --maxw:1120px;
   }
   @media (prefers-color-scheme:dark){
-    :root{ --bg:#0f1216; --surface:#171b21; --ink:#e8ebf0; --muted:#98a2b3; --line:#252b34;
-           --accent:#6ea8de; --good:#39c17a; --bad:#ef6b6b; --warn:#e2b23a;
-           --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 30px rgba(0,0,0,.35); }
+    :root:not([data-theme="light"]){
+      --bg:#0c0f14; --surface:#141a22; --surface2:#0f141b; --ink:#e9edf3; --muted:#93a0b2;
+      --line:#232b36; --accent:#6c9bf0; --accent2:#4f6aa0; --good:#35c07d; --bad:#ef6b6b;
+      --warn:#e3b23a; --grid:#1b2229;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.45);
+    }
   }
-  :root[data-theme="dark"]{ --bg:#0f1216; --surface:#171b21; --ink:#e8ebf0; --muted:#98a2b3;
-    --line:#252b34; --accent:#6ea8de; --good:#39c17a; --bad:#ef6b6b; --warn:#e2b23a; }
-  :root[data-theme="light"]{ --bg:#f7f8fa; --surface:#ffffff; --ink:#1a1d24; --muted:#5b6472;
-    --line:#e6e9ef; --accent:#3b6ea5; --good:#1f9d55; --bad:#d64545; --warn:#c98a12; }
+  :root[data-theme="dark"]{
+    --bg:#0c0f14; --surface:#141a22; --surface2:#0f141b; --ink:#e9edf3; --muted:#93a0b2;
+    --line:#232b36; --accent:#6c9bf0; --accent2:#4f6aa0; --good:#35c07d; --bad:#ef6b6b;
+    --warn:#e3b23a; --grid:#1b2229; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 34px rgba(0,0,0,.45);
+  }
   *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  .wrap{max-width:1000px;margin:0 auto;padding:28px 18px 60px;}
-  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;justify-content:space-between;margin-bottom:6px}
-  h1{font-size:1.5rem;margin:0;letter-spacing:-.01em}
-  .sub{color:var(--muted);font-size:.9rem}
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:color-mix(in oklab,var(--bg) 82%,transparent);
+    backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:20px;height:58px}
+  .brand{font-weight:750;letter-spacing:-.02em;font-size:1.05rem;display:flex;align-items:center;gap:8px}
+  .brand .badge{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:inline-block}
+  nav .links{display:flex;gap:18px;margin-left:auto;font-size:.9rem}
+  nav .links a{color:var(--muted)} nav .links a:hover{color:var(--ink)}
+  .btn{cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:9px;padding:6px 11px;font-size:.85rem}
+  .btn:hover{color:var(--ink);border-color:var(--accent)}
+  /* hero */
+  .hero{padding:46px 0 10px}
+  .hero h1{font-size:2.15rem;line-height:1.1;letter-spacing:-.025em;margin:0 0 10px;max-width:16ch}
+  .hero p.tag{font-size:1.12rem;color:var(--muted);margin:0 0 20px;max-width:60ch}
+  .strip{display:flex;flex-wrap:wrap;gap:22px;color:var(--muted);font-size:.9rem;align-items:center}
+  .strip b{color:var(--ink)}
+  .live{display:inline-flex;align-items:center;gap:7px}
+  .live .pulse{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 0 0 var(--good);
+    animation:p 2s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--good) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  section{padding:26px 0}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);padding:20px;margin-top:18px}
-  /* verdict banner */
+    box-shadow:var(--shadow);padding:22px}
+  h2.sec{font-size:1.3rem;letter-spacing:-.02em;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+  .sec-note{color:var(--muted);margin:0 0 16px;font-size:.95rem}
+  /* onboarding */
+  .explain{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .explain .item{padding:2px 2px}
+  .explain .item h3{margin:0 0 6px;font-size:1rem;display:flex;gap:8px;align-items:center}
+  .explain .item .ic{width:30px;height:30px;border-radius:9px;background:var(--surface2);
+    display:grid;place-items:center;font-size:1rem;border:1px solid var(--line)}
+  .explain .item p{margin:0;color:var(--muted);font-size:.92rem}
+  /* verdict */
   .verdict{display:flex;gap:14px;align-items:flex-start;border-left:5px solid var(--muted)}
-  .verdict.good{border-left-color:var(--good)} .verdict.bad{border-left-color:var(--bad)}
-  .verdict .big{font-size:1.15rem;font-weight:650;margin:0 0 4px}
-  .verdict .why{color:var(--muted);font-size:.95rem;margin:0}
-  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-top:6px;background:var(--muted)}
-  .verdict.good .dot{background:var(--good)} .verdict.bad .dot{background:var(--bad)}
+  .verdict.good{border-left-color:var(--good)} .verdict.bad{border-left-color:var(--warn)}
+  .verdict .big{font-size:1.2rem;font-weight:680;margin:0 0 4px}
+  .verdict .why{color:var(--muted);margin:0}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-top:7px;background:var(--muted)}
+  .verdict.good .dot{background:var(--good)} .verdict.bad .dot{background:var(--warn)}
   /* tiles */
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:18px}
-  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-    padding:16px 16px 14px;box-shadow:var(--shadow)}
-  .tile .label{color:var(--muted);font-size:.82rem;display:flex;align-items:center;gap:6px}
-  .tile .value{font-size:1.7rem;font-weight:700;margin-top:6px;letter-spacing:-.02em}
-  .tile .value.small{font-size:1.15rem}
-  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.8rem;font-weight:650}
-  .pill.good{background:color-mix(in oklab,var(--good) 18%,transparent);color:var(--good)}
-  .pill.bad{background:color-mix(in oklab,var(--bad) 18%,transparent);color:var(--bad)}
-  /* info button */
-  .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
-    border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);
-    font-size:11px;font-weight:700;font-style:normal;cursor:help;position:relative;flex:0 0 16px;user-select:none}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:14px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .tile .label{color:var(--muted);font-size:.8rem;display:flex;align-items:center;gap:6px}
+  .tile .value{font-size:1.8rem;font-weight:760;margin-top:7px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .tile .value.sm{font-size:1.15rem}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.8rem;font-weight:680}
+  .pill.good{background:color-mix(in oklab,var(--good) 16%,transparent);color:var(--good)}
+  .pill.bad{background:color-mix(in oklab,var(--warn) 18%,transparent);color:var(--warn)}
+  /* info */
+  .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;
+    border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:11px;font-weight:700;
+    font-style:normal;cursor:help;position:relative;flex:0 0 16px;user-select:none}
   .info:hover,.info:focus{color:var(--accent);border-color:var(--accent);outline:none}
-  .info .tip{position:absolute;top:130%;left:50%;transform:translateX(-50%);width:240px;
-    background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;font-size:.82rem;
-    font-weight:400;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;
-    transition:opacity .12s;z-index:20;text-align:left}
+  .info .tip{position:absolute;top:135%;left:50%;transform:translateX(-50%);width:250px;background:var(--ink);
+    color:var(--bg);padding:11px 13px;border-radius:11px;font-size:.82rem;font-weight:400;line-height:1.5;
+    box-shadow:var(--shadow);opacity:0;visibility:hidden;transition:.12s;z-index:60;text-align:left}
   .info:hover .tip,.info:focus .tip{opacity:1;visibility:visible}
   .info .tip::after{content:"";position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
     border:6px solid transparent;border-bottom-color:var(--ink)}
-  h2{font-size:1.05rem;margin:0 0 4px;display:flex;align-items:center;gap:8px}
-  .muted{color:var(--muted);font-size:.92rem;margin:.2rem 0 0}
-  /* scatter */
+  /* charts */
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .tab{cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:999px;padding:6px 14px;font-size:.85rem}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
   svg{width:100%;height:auto;display:block;overflow:visible}
-  .axline{stroke:var(--line);stroke-width:1}
-  .refline{stroke:var(--muted);stroke-dasharray:4 4;stroke-width:1;opacity:.6}
+  .axline{stroke:var(--line);stroke-width:1}.grid{stroke:var(--grid);stroke-width:1}
+  .refline{stroke:var(--muted);stroke-dasharray:4 4;stroke-width:1;opacity:.55}
   .axlabel{fill:var(--muted);font-size:11px}
   .mark{stroke:var(--surface);stroke-width:1.5}
+  .chart-cap{color:var(--muted);font-size:.88rem;margin:10px 2px 0}
+  /* sectors */
+  .grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:22px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .bar{display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:10px;margin:7px 0;font-size:.86rem}
+  .bar .track{background:var(--surface2);border-radius:6px;height:9px;overflow:hidden}
+  .bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px}
+  .bar .nm{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .pc{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-top:6px}
+  .chip{border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--surface2)}
+  .chip .tk{font-weight:720}.chip .sec{color:var(--muted);font-size:.72rem}
+  .chip .wt{color:var(--accent);font-size:.78rem;font-weight:680;font-variant-numeric:tabular-nums}
   /* table */
-  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem}
-  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600;font-size:.82rem}
-  td.num{font-variant-numeric:tabular-nums}
-  .toggle{cursor:pointer;color:var(--accent);background:none;border:none;font-size:.85rem}
-  footer{color:var(--muted);font-size:.82rem;margin-top:26px;text-align:center;line-height:1.6}
-  .empty{color:var(--muted);text-align:center;padding:30px}
-  /* picks chips */
-  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
-  .chip{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:10px;
-    padding:9px 11px;background:var(--bg)}
-  .chip .tk{font-weight:700;letter-spacing:-.01em}
-  .chip .sec{color:var(--muted);font-size:.74rem}
-  .chip .wt{color:var(--accent);font-size:.8rem;font-weight:650;font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.9rem}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:.8rem;cursor:pointer;user-select:none;white-space:nowrap}
+  th:hover{color:var(--ink)} td.num{font-variant-numeric:tabular-nums} td.cfg{color:var(--muted);font-size:.84rem}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;counter-reset:s}
+  .step{border:1px solid var(--line);border-radius:var(--radius);padding:16px;background:var(--surface)}
+  .step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:26px;height:26px;
+    border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:.85rem;margin-bottom:9px}
+  .step h4{margin:0 0 5px;font-size:.98rem}.step p{margin:0;color:var(--muted);font-size:.88rem}
+  footer{border-top:1px solid var(--line);margin-top:26px;padding:24px 0;color:var(--muted);font-size:.85rem;line-height:1.7}
+  .empty{color:var(--muted);text-align:center;padding:26px}
 </style>
 </head>
 <body>
+<nav><div class="wrap">
+  <span class="brand"><span class="badge"></span>Sterling</span>
+  <div class="links">
+    <a href="#overview">Overview</a><a href="#results">Results</a>
+    <a href="#holdings">Holdings</a><a href="#how">How it works</a>
+    <a href="https://github.com/Siddharth2205/sterling-agent" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+  <button class="btn" id="theme">◐</button>
+</div></nav>
+
 <div class="wrap">
-  <header>
-    <div>
-      <h1>Sterling — Strategy Search</h1>
-      <div class="sub">A computer is trying trading strategies every day and testing them honestly. <span id="updated"></span></div>
+
+  <!-- HERO -->
+  <header class="hero" id="overview">
+    <h1>An honest, self-testing stock-strategy lab.</h1>
+    <p class="tag">Every day a computer invents new trading strategies, tests them on decades of real market
+      data — including the companies that went bankrupt — and reports the truth, even when the truth is
+      “nothing beats the index.”</p>
+    <div class="strip">
+      <span class="live"><span class="pulse"></span> <b>Running</b> · autonomous search</span>
+      <span>·</span>
+      <span><b id="s-trials">—</b> strategies tested</span>
+      <span>·</span>
+      <span><b id="s-days">—</b> days left in the run</span>
+      <span>·</span>
+      <span id="updated"></span>
     </div>
-    <button class="toggle" id="theme">◐ theme</button>
   </header>
 
-  <!-- VERDICT -->
-  <div class="card verdict" id="verdict">
-    <div class="dot"></div>
-    <div>
-      <p class="big" id="verdict-big">Loading…</p>
-      <p class="why" id="verdict-why"></p>
+  <!-- ONBOARDING -->
+  <section>
+    <div class="card">
+      <h2 class="sec">What is this?
+        <span class="info" tabindex="0">i<span class="tip">A plain-English intro for anyone landing here for the first time.</span></span>
+      </h2>
+      <p class="sec-note">Sterling is a research project that asks one question honestly: <b>can a computer actually pick stocks that beat the market — or is it just luck?</b></p>
+      <div class="explain">
+        <div class="item"><h3><span class="ic">🎯</span> What it does</h3><p>A machine-learning model ranks thousands of stocks each day and builds a “paper” portfolio of its favorites — no real money, purely to test the idea.</p></div>
+        <div class="item"><h3><span class="ic">🧪</span> How it tests fairly</h3><p>It trains on older data, then is graded on recent years it was <b>never allowed to see</b> — the only fair test. It also includes companies that later collapsed, so results aren’t flattered by survivors.</p></div>
+        <div class="item"><h3><span class="ic">🛡️</span> Why you can trust it</h3><p>It tries to <b>disprove</b> its own strategies. It will only ever flag something real — never a lucky fluke dressed up as a winner.</p></div>
+        <div class="item"><h3><span class="ic">📊</span> What you’re seeing</h3><p>Live results from the search: how many strategies were tried, how they scored on the fair test, and what the current paper portfolio holds.</p></div>
+      </div>
     </div>
-  </div>
+  </section>
+
+  <!-- VERDICT -->
+  <section id="results">
+    <div class="card verdict" id="verdict">
+      <div class="dot"></div>
+      <div><p class="big" id="verdict-big">Loading…</p><p class="why" id="verdict-why"></p></div>
+    </div>
+  </section>
 
   <!-- TILES -->
-  <div class="tiles" id="tiles"></div>
+  <section><div class="tiles" id="tiles"></div></section>
 
-  <!-- CURRENT PICKS -->
-  <div class="card">
-    <h2>What it would hold right now
-      <span class="info" tabindex="0">i<span class="tip">The market-neutral “paper book” — the stocks the model would buy today, spread across sectors and weighted so calmer stocks get more. These are only real, liquid names you could actually trade. It's a paper test to learn from, <b>not</b> a buy list or advice.</span></span>
-    </h2>
-    <p class="muted" id="book-sub"></p>
-    <div id="book"></div>
-  </div>
+  <!-- CHARTS -->
+  <section>
+    <div class="card">
+      <h2 class="sec">The evidence
+        <span class="info" tabindex="0">i<span class="tip">Three ways to look at the search. Switch tabs to explore.</span></span>
+      </h2>
+      <div class="tabs" id="chart-tabs">
+        <button class="tab active" data-c="scatter">Real vs. lucky</button>
+        <button class="tab" data-c="dist">Result spread</button>
+        <button class="tab" data-c="progress">Progress</button>
+      </div>
+      <div id="chart"></div>
+      <p class="chart-cap" id="chart-cap"></p>
+    </div>
+  </section>
 
-  <!-- CHART -->
-  <div class="card">
-    <h2>Every strategy we tried
-      <span class="info" tabindex="0">i<span class="tip">Each dot is one trading strategy the computer tested. <b>Right</b> = it looked good while the computer was tuning it. <b>Up</b> = it actually worked on recent data it was never allowed to learn from (the fair test). We only trust dots in the <b>top-right</b>. Most fall short — which is exactly why we test this way.</span></span>
-    </h2>
-    <p class="muted">Looked good in practice → &nbsp;·&nbsp; Actually worked on the honest test ↑</p>
-    <div id="chart"></div>
-  </div>
+  <!-- HOLDINGS -->
+  <section id="holdings">
+    <div class="card">
+      <h2 class="sec">What the paper portfolio holds now
+        <span class="info" tabindex="0">i<span class="tip">The market-neutral “paper book” — real, liquid stocks the model would buy today, spread across sectors and weighted so calmer stocks get more. A paper test to learn from, <b>not</b> a buy list or advice.</span></span>
+      </h2>
+      <p class="sec-note" id="book-sub"></p>
+      <div class="grid2">
+        <div><h3 style="margin:0 0 4px;font-size:.95rem">By sector</h3><div id="sectors"></div></div>
+        <div><h3 style="margin:0 0 4px;font-size:.95rem">Largest positions</h3><div id="book"></div></div>
+      </div>
+    </div>
+  </section>
 
   <!-- LEADERBOARD -->
-  <div class="card">
-    <h2>Best strategies so far
-      <span class="info" tabindex="0">i<span class="tip">The top strategies, ranked by how they looked during tuning. The column that matters is the <b>honest test</b> — how they did on data they never saw.</span></span>
-    </h2>
-    <div id="table"></div>
-  </div>
+  <section>
+    <div class="card">
+      <h2 class="sec">Strategy leaderboard
+        <span class="info" tabindex="0">i<span class="tip">Every strategy tried. Click a column header to sort. “Honest test” columns are the ones that matter — how it did on data it never saw.</span></span>
+      </h2>
+      <div id="table"></div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="card">
+      <h2 class="sec">How it works</h2>
+      <p class="sec-note">The same disciplined method a professional quant desk uses — built to catch its own mistakes.</p>
+      <div class="steps">
+        <div class="step"><h4>Survivorship-free data</h4><p>~25 years of prices for thousands of US stocks, including ~38,000 that later delisted — so dead companies book their real losses.</p></div>
+        <div class="step"><h4>Point-in-time features</h4><p>Each day’s signals use only what was known that day. No peeking at the future.</p></div>
+        <div class="step"><h4>Walk-forward training</h4><p>The model learns on the past and predicts the future, rolling forward through time.</p></div>
+        <div class="step"><h4>The honest test</h4><p>Final grade is on a locked-away recent period the search was never allowed to tune on.</p></div>
+        <div class="step"><h4>Tradeable only</h4><p>Only real, liquid stocks you could actually buy — no penny-stock illusions.</p></div>
+        <div class="step"><h4>Report the truth</h4><p>A strategy is flagged only if it beats the market on unseen data with real confidence.</p></div>
+      </div>
+    </div>
+  </section>
 
   <footer>
-    Research, not financial advice. “Honest test” = a locked-away recent period the search was never allowed to tune on —
-    the only fair measure of whether a strategy really works. Campaign runs until <b id="deadline"></b>.
+    <b>Sterling</b> — autonomous equity-strategy research. Research &amp; education only; <b>not financial advice</b>.
+    Full write-up and code on <a href="https://github.com/Siddharth2205/sterling-agent" target="_blank" rel="noopener">GitHub</a>.
+    The search runs daily until <b id="deadline"></b>, then sends a final report.
   </footer>
 </div>
 
 <script id="embedded" type="application/json">{
-  "updated": "2026-07-29T18:54+00:00",
-  "trials": 2,
+  "updated": "2026-07-29T21:51+00:00",
+  "trials": 15,
+  "pass_count": 0,
   "edge_found": false,
+  "days_remaining": 30,
+  "deadline": "2026-08-28",
+  "holdout_since": "2022-01-01",
   "best": {
-    "holdout_alpha": 12.83,
-    "holdout_sharpe": 0.83,
-    "holdout_t": 1.77,
-    "plain": "buy the top 20% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
+    "holdout_alpha": 1.6,
+    "holdout_sharpe": 0.21,
+    "holdout_t": 0.45,
+    "plain": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3"
   },
   "candidates": [
     {
-      "dev_sharpe": 0.43,
-      "holdout_sharpe": 0.83,
-      "holdout_alpha": 12.83,
-      "holdout_t": 1.77
+      "ts": "2026-07-29T20:15:05",
+      "dev_sharpe": 0.28,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 5.81,
+      "holdout_t": 0.95,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
     },
     {
-      "dev_sharpe": 0.0,
-      "holdout_sharpe": 0.03,
-      "holdout_alpha": 0.63,
-      "holdout_t": 0.07
+      "ts": "2026-07-29T20:17:19",
+      "dev_sharpe": -0.07,
+      "holdout_sharpe": 0.59,
+      "holdout_alpha": 13.64,
+      "holdout_t": 1.24,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:20:12",
+      "dev_sharpe": -0.17,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.76,
+      "holdout_t": -0.05,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:22:30",
+      "dev_sharpe": 0.38,
+      "holdout_sharpe": 0.12,
+      "holdout_alpha": 1.17,
+      "holdout_t": 0.25,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:25:41",
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": 0.63,
+      "holdout_alpha": 11.56,
+      "holdout_t": 1.33,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:29:31",
+      "dev_sharpe": -0.21,
+      "holdout_sharpe": -0.12,
+      "holdout_alpha": -3.61,
+      "holdout_t": -0.25,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:32:40",
+      "dev_sharpe": 0.3,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.35,
+      "holdout_t": 0.39,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:34:57",
+      "dev_sharpe": 0.52,
+      "holdout_sharpe": 0.21,
+      "holdout_alpha": 1.6,
+      "holdout_t": 0.45,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:38:21",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.28,
+      "holdout_alpha": 2.82,
+      "holdout_t": 0.58,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:41:11",
+      "dev_sharpe": 0.24,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.26,
+      "holdout_t": 0.38,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:45:19",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.67,
+      "holdout_alpha": 11.92,
+      "holdout_t": 1.43,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:48:56",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.38,
+      "holdout_alpha": 6.0,
+      "holdout_t": 0.8,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:51:48",
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -1.05,
+      "holdout_t": -0.06,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:53:48",
+      "dev_sharpe": -0.14,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 8.61,
+      "holdout_t": 0.77,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:56:49",
+      "dev_sharpe": 0.44,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 3.69,
+      "holdout_t": 0.76,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $5",
+      "passed": false
+    }
+  ],
+  "progress": [
+    {
+      "day": "2026-07-29",
+      "cumulative": 15
     }
   ],
   "book": {
@@ -224,136 +471,217 @@
         "ticker": "BNY",
         "sector": "Financial Services",
         "weight": 0.51
+      },
+      {
+        "ticker": "VLY",
+        "sector": "Financial Services",
+        "weight": 0.51
+      },
+      {
+        "ticker": "APLE",
+        "sector": "Real Estate",
+        "weight": 0.51
+      },
+      {
+        "ticker": "CM",
+        "sector": "Financial Services",
+        "weight": 0.51
+      },
+      {
+        "ticker": "STT",
+        "sector": "Financial Services",
+        "weight": 0.5
+      }
+    ],
+    "sectors": [
+      {
+        "name": "Industrials",
+        "pct": 18.1
+      },
+      {
+        "name": "Financial Services",
+        "pct": 16.6
+      },
+      {
+        "name": "Technology",
+        "pct": 14.8
+      },
+      {
+        "name": "Healthcare",
+        "pct": 14.0
+      },
+      {
+        "name": "Consumer Cyclical",
+        "pct": 8.0
+      },
+      {
+        "name": "Consumer Defensive",
+        "pct": 6.6
+      },
+      {
+        "name": "Basic Materials",
+        "pct": 6.5
+      },
+      {
+        "name": "Energy",
+        "pct": 5.7
+      },
+      {
+        "name": "Real Estate",
+        "pct": 5.3
+      },
+      {
+        "name": "Communication Services",
+        "pct": 3.6
+      },
+      {
+        "name": "Utilities",
+        "pct": 0.9
       }
     ]
-  },
-  "holdout_since": "2022-01-01",
-  "deadline": "2026-08-28"
+  }
 }</script>
 <script>
-const TIPS = {
-  trials:"How many different trading strategies the computer has tried so far. It keeps trying new ones every day and learns which directions look promising.",
-  ret:"The best yearly return any strategy achieved — measured ONLY on recent years the computer was never allowed to learn from. That's the fair test, not a rehearsal.",
-  sharpe:"“Bang for your buck” on risk: how much reward you get for how much the value bounces around. Below ~0.5 is basically noise; around 1 is genuinely good.",
-  tstat:"How sure we are it's real skill and not luck. Above 2 = probably real. Below 2 = could easily be a fluke, so we don't trust it.",
-  passed:"Did the best strategy actually beat the market on data it had never seen, with enough confidence to trust it? Green = yes. Red = not yet — which, honestly, is the expected answer.",
-  best:"The winning strategy in plain words — what it would actually buy."
+const TIPS={
+  trials:"How many different trading strategies the computer has tested so far. It adds more every day.",
+  passed:"How many of those strategies actually beat the market on data they’d never seen, with real confidence. Usually zero — that’s the honest answer.",
+  ret:"Best yearly return any strategy got — measured only on recent years the computer was never allowed to learn from.",
+  sharpe:"“Bang for your buck” on risk. Below ~0.5 is basically noise; around 1 is genuinely good.",
+  tstat:"How sure we are it’s skill, not luck. Above 2 = probably real. Below 2 = could be a fluke.",
+  days:"Days left in the month-long autonomous run before the final report."
 };
-function info(key){return `<span class="info" tabindex="0">i<span class="tip">${TIPS[key]}</span></span>`;}
+const I=k=>`<span class="info" tabindex="0">i<span class="tip">${TIPS[k]}</span></span>`;
+let DATA=null, CUR="scatter";
 
-function load(){
-  return fetch('./dashboard_data.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json();})
-    .catch(()=>JSON.parse(document.getElementById('embedded').textContent));
-}
+function load(){return fetch('./dashboard_data.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()})
+  .catch(()=>JSON.parse(document.getElementById('embedded').textContent));}
 
 function render(d){
-  document.getElementById('updated').textContent = d.updated
-    ? '· updated '+new Date(d.updated).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})+' (your time)' : '';
-  document.getElementById('deadline').textContent = d.deadline || '';
-  const cands=(d.candidates||[]).filter(c=>c.holdout_sharpe!=null);
+  DATA=d;
+  document.getElementById('updated').textContent = d.updated? 'updated '+new Date(d.updated).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}) : '';
+  document.getElementById('deadline').textContent = d.deadline||'';
+  document.getElementById('s-trials').textContent = (d.trials??0).toLocaleString();
+  document.getElementById('s-days').textContent = d.days_remaining??'—';
 
-  // verdict
-  const v=document.getElementById('verdict');
-  const found=d.edge_found;
+  const found=d.edge_found, v=document.getElementById('verdict');
   v.classList.add(found?'good':'bad');
   document.getElementById('verdict-big').textContent = found
     ? "A strategy passed the honest test — worth a closer look."
-    : "No reliable money-making strategy found yet.";
+    : "No reliable market-beating strategy found yet.";
   document.getElementById('verdict-why').textContent = found
-    ? "One candidate beat the market on data it had never seen, with real confidence. Dig in before trusting it with money."
-    : "And that's the honest, trustworthy answer. The search keeps trying — but it will only ever flag something real, never a lucky fluke.";
+    ? "One candidate beat the market on data it had never seen, with real confidence. Investigate before trusting it."
+    : "And that’s the trustworthy answer. The search keeps trying — it will only ever flag something real, never a lucky fluke.";
 
-  // tiles
   const b=d.best||{};
-  const passPill = found?'<span class="pill good">✓ Yes</span>':'<span class="pill bad">Not yet</span>';
   const tiles=[
-    {label:'Strategies tested',key:'trials',val:(d.trials??0).toLocaleString()},
-    {label:'Best return / year',key:'ret',val:b.holdout_alpha!=null?(b.holdout_alpha>0?'+':'')+b.holdout_alpha+'%':'—'},
-    {label:'Bang-for-risk',key:'sharpe',val:b.holdout_sharpe!=null?b.holdout_sharpe:'—'},
-    {label:'Is it real? (confidence)',key:'tstat',val:b.holdout_t!=null?b.holdout_t:'—'},
-    {label:'Passed honest test?',key:'passed',val:passPill,small:true},
+    {l:'Strategies tested',k:'trials',v:(d.trials??0).toLocaleString()},
+    {l:'Passed honest test',k:'passed',v:`${d.pass_count??0} / ${d.trials??0}`,pill:(d.pass_count>0?'good':'bad')},
+    {l:'Best return / year',k:'ret',v:b.holdout_alpha!=null?(b.holdout_alpha>0?'+':'')+b.holdout_alpha+'%':'—'},
+    {l:'Best bang-for-risk',k:'sharpe',v:b.holdout_sharpe??'—'},
+    {l:'Confidence',k:'tstat',v:b.holdout_t??'—'},
+    {l:'Days remaining',k:'days',v:d.days_remaining??'—'},
   ];
-  document.getElementById('tiles').innerHTML = tiles.map(t=>`
-    <div class="tile"><div class="label">${t.label} ${info(t.key)}</div>
-    <div class="value ${t.small?'small':''}">${t.val}</div></div>`).join('')
-    + (b.plain?`<div class="tile" style="grid-column:1/-1"><div class="label">Best strategy, in plain words ${info('best')}</div>
-       <div class="value small">${b.plain}</div></div>`:'');
+  document.getElementById('tiles').innerHTML=tiles.map(t=>`
+    <div class="tile"><div class="label">${t.l} ${I(t.k)}</div>
+    <div class="value ${t.pill?'sm':''}">${t.pill?`<span class="pill ${t.pill}">${t.v}</span>`:t.v}</div></div>`).join('');
 
-  // current picks
-  book(d.book||{});
-  // scatter
-  chart(cands);
-  // table
-  table(cands);
+  drawChart(); sectors(d.book||{}); bookChips(d.book||{}); leaderboard(d.candidates||[]);
 }
 
-function book(bk){
-  const el=document.getElementById('book'), sub=document.getElementById('book-sub');
-  const picks=bk.picks||[];
-  if(!picks.length){ sub.textContent=''; el.innerHTML='<div class="empty">No paper book yet — it appears once the model has run.</div>'; return; }
-  sub.textContent = `As of ${bk.asof} · holding ${bk.count} names, sector-balanced (top ${picks.length} shown by size)`;
-  el.innerHTML = '<div class="chips">'+picks.map(p=>`
-    <div class="chip"><span class="tk">${p.ticker}</span>
-      <span class="sec">${p.sector}</span><span class="wt">${p.weight}%</span></div>`).join('')+'</div>';
+/* ---- charts ---- */
+function drawChart(){
+  const el=document.getElementById('chart'), cap=document.getElementById('chart-cap');
+  const c=(DATA.candidates||[]).filter(x=>x.holdout_sharpe!=null);
+  if(!c.length){el.innerHTML='<div class="empty">Warming up — results appear as the search runs.</div>';cap.textContent='';return;}
+  if(CUR==='scatter'){scatter(el,c);cap.innerHTML='Each dot is a strategy. <b>→ Right</b>: looked good while tuning. <b>↑ Up</b>: actually worked on the honest test. Only the <b style="color:var(--good)">green top-right</b> is trustworthy — almost nothing lands there, which is exactly why we test this way.';}
+  else if(CUR==='dist'){hist(el,c);cap.innerHTML='How the strategies’ <b>honest-test returns</b> are spread out. A real edge would sit clearly to the right of zero; most cluster around zero — noise.';}
+  else {progress(el,DATA.progress||[]);cap.innerHTML='Total strategies tested over time. It climbs every day the search runs.';}
 }
-
-function chart(cands){
-  const el=document.getElementById('chart');
-  if(!cands.length){el.innerHTML='<div class="empty">Warming up — strategies will appear here as the search runs.</div>';return;}
-  const W=920,H=380,P=48;
-  const xs=cands.map(c=>c.dev_sharpe??0), ys=cands.map(c=>c.holdout_sharpe??0);
-  const xmin=Math.min(-.2,...xs), xmax=Math.max(1,...xs);
-  const ymin=Math.min(-.2,...ys), ymax=Math.max(1,...ys);
-  const X=v=>P+(v-xmin)/(xmax-xmin)*(W-2*P);
-  const Y=v=>H-P-(v-ymin)/(ymax-ymin)*(H-2*P);
-  const pass=c=>(c.holdout_t??0)>2 && (c.holdout_sharpe??0)>0.5;
-  // passing zone shading (top area where holdout>0.5)
-  const zoneY=Y(0.5);
-  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="scatter of strategies">`;
-  s+=`<rect x="${P}" y="${P}" width="${W-2*P}" height="${Math.max(0,zoneY-P)}" fill="var(--good)" opacity="0.06"/>`;
-  s+=`<text x="${W-P}" y="${P+14}" text-anchor="end" class="axlabel" fill="var(--good)">trustworthy zone</text>`;
-  // axes
-  s+=`<line class="axline" x1="${P}" y1="${Y(0)}" x2="${W-P}" y2="${Y(0)}"/>`;
-  s+=`<line class="axline" x1="${X(0)}" y1="${P}" x2="${X(0)}" y2="${H-P}"/>`;
-  // reference y=x ("if it were real")
-  const lo=Math.max(xmin,ymin), hi=Math.min(xmax,ymax);
+function frame(W,H,P){return {W,H,P};}
+function scatter(el,c){
+  const W=940,H=400,P=52;
+  const xs=c.map(d=>d.dev_sharpe??0),ys=c.map(d=>d.holdout_sharpe??0);
+  const xmin=Math.min(-.3,...xs),xmax=Math.max(1,...xs),ymin=Math.min(-.3,...ys),ymax=Math.max(1,...ys);
+  const X=v=>P+(v-xmin)/(xmax-xmin)*(W-2*P), Y=v=>H-P-(v-ymin)/(ymax-ymin)*(H-2*P);
+  const pass=d=>(d.holdout_t??0)>2&&(d.holdout_sharpe??0)>0.5;
+  let s=`<svg viewBox="0 0 ${W} ${H}">`;
+  s+=`<rect x="${X(0.5)}" y="${P}" width="${W-P-X(0.5)}" height="${Y(0.5)-P}" fill="var(--good)" opacity=".07"/>`;
+  s+=`<text x="${W-P}" y="${P+15}" text-anchor="end" class="axlabel" fill="var(--good)">trustworthy zone</text>`;
+  s+=`<line class="axline" x1="${P}" y1="${Y(0)}" x2="${W-P}" y2="${Y(0)}"/><line class="axline" x1="${X(0)}" y1="${P}" x2="${X(0)}" y2="${H-P}"/>`;
+  const lo=Math.max(xmin,ymin),hi=Math.min(xmax,ymax);
   s+=`<line class="refline" x1="${X(lo)}" y1="${Y(lo)}" x2="${X(hi)}" y2="${Y(hi)}"/>`;
-  s+=`<text class="axlabel" x="${W/2}" y="${H-12}" text-anchor="middle">Looked good while tuning →</text>`;
-  s+=`<text class="axlabel" transform="translate(14,${H/2}) rotate(-90)" text-anchor="middle">Worked on the honest test ↑</text>`;
-  for(const c of cands){
-    const col=pass(c)?'var(--good)':'var(--accent)';
-    s+=`<circle class="mark" cx="${X(c.dev_sharpe??0)}" cy="${Y(c.holdout_sharpe??0)}" r="7" fill="${col}" opacity="${pass(c)?0.95:0.6}">`
-      +`<title>Return/yr ${c.holdout_alpha??'—'}%, bang-for-risk ${c.holdout_sharpe??'—'}, confidence ${c.holdout_t??'—'}</title></circle>`;
-  }
-  s+=`</svg>`;
-  el.innerHTML=s;
+  s+=`<text class="axlabel" x="${W/2}" y="${H-14}" text-anchor="middle">Looked good while tuning →</text>`;
+  s+=`<text class="axlabel" transform="translate(16,${H/2}) rotate(-90)" text-anchor="middle">Worked on the honest test ↑</text>`;
+  for(const d of c){const ok=pass(d);
+    s+=`<circle class="mark" cx="${X(d.dev_sharpe??0)}" cy="${Y(d.holdout_sharpe??0)}" r="7" fill="${ok?'var(--good)':'var(--accent)'}" opacity="${ok?.95:.6}"><title>${d.config}\nreturn/yr ${d.holdout_alpha??'—'}%, Sharpe ${d.holdout_sharpe??'—'}, confidence ${d.holdout_t??'—'}</title></circle>`;}
+  el.innerHTML=s+`</svg>`;
 }
-
-function table(cands){
+function hist(el,c){
+  const W=940,H=400,P=52, vals=c.map(d=>d.holdout_alpha??0);
+  const lo=Math.min(-20,...vals),hi=Math.max(20,...vals),nb=12,bw=(hi-lo)/nb;
+  const bins=Array.from({length:nb},(_,i)=>({x0:lo+i*bw,n:0}));
+  vals.forEach(v=>{let i=Math.min(nb-1,Math.max(0,Math.floor((v-lo)/bw)));bins[i].n++;});
+  const maxn=Math.max(1,...bins.map(b=>b.n));
+  const X=v=>P+(v-lo)/(hi-lo)*(W-2*P), Y=n=>H-P-n/maxn*(H-2*P);
+  let s=`<svg viewBox="0 0 ${W} ${H}">`;
+  s+=`<line class="axline" x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}"/>`;
+  s+=`<line class="refline" x1="${X(0)}" y1="${P}" x2="${X(0)}" y2="${H-P}"/><text class="axlabel" x="${X(0)}" y="${P-6}" text-anchor="middle">0% (no edge)</text>`;
+  bins.forEach(b=>{const x=X(b.x0)+2,w=Math.max(1,(W-2*P)/nb-4),y=Y(b.n);
+    s+=`<rect x="${x}" y="${y}" width="${w}" height="${H-P-y}" rx="4" fill="var(--accent)" opacity=".8"><title>${b.x0.toFixed(0)}% to ${(b.x0+bw).toFixed(0)}%: ${b.n} strategies</title></rect>`;});
+  s+=`<text class="axlabel" x="${W/2}" y="${H-14}" text-anchor="middle">Return per year on the honest test (%)</text>`;
+  el.innerHTML=s+`</svg>`;
+}
+function progress(el,p){
+  const W=940,H=400,P=52;
+  if(p.length<2){el.innerHTML='<div class="empty">Progress chart fills in once the search has run on more than one day.</div>';return;}
+  const xs=p.map((_,i)=>i),ymax=Math.max(...p.map(d=>d.cumulative));
+  const X=i=>P+i/(p.length-1)*(W-2*P),Y=v=>H-P-v/ymax*(H-2*P);
+  let path=p.map((d,i)=>`${i?'L':'M'}${X(i)} ${Y(d.cumulative)}`).join(' ');
+  let area=`M${X(0)} ${Y(0)} `+p.map((d,i)=>`L${X(i)} ${Y(d.cumulative)}`).join(' ')+` L${X(p.length-1)} ${Y(0)} Z`;
+  let s=`<svg viewBox="0 0 ${W} ${H}"><line class="axline" x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}"/>`;
+  s+=`<path d="${area}" fill="var(--accent)" opacity=".12"/><path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
+  p.forEach((d,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(d.cumulative)}" r="4" fill="var(--accent)" class="mark"><title>${d.day}: ${d.cumulative} total</title></circle>`;});
+  s+=`<text class="axlabel" x="${P}" y="${H-14}">${p[0].day}</text><text class="axlabel" x="${W-P}" y="${H-14}" text-anchor="end">${p[p.length-1].day}</text>`;
+  el.innerHTML=s+`</svg>`;
+}
+/* ---- holdings ---- */
+function sectors(bk){
+  const el=document.getElementById('sectors'),s=(bk.sectors||[]).slice(0,8);
+  if(!s.length){el.innerHTML='<div class="empty">—</div>';return;}
+  const mx=Math.max(...s.map(x=>x.pct));
+  el.innerHTML=s.map(x=>`<div class="bar"><span class="nm">${x.name}</span>
+    <span class="track"><span class="fill" style="width:${Math.max(3,x.pct/mx*100)}%"></span></span>
+    <span class="pc">${x.pct}%</span></div>`).join('');
+}
+function bookChips(bk){
+  const el=document.getElementById('book'),sub=document.getElementById('book-sub'),p=bk.picks||[];
+  if(!p.length){sub.textContent='';el.innerHTML='<div class="empty">No paper book yet.</div>';return;}
+  sub.textContent=`As of ${bk.asof} · ${bk.count} names held, sector-balanced (largest ${p.length} shown)`;
+  el.innerHTML='<div class="chips">'+p.map(x=>`<div class="chip"><div class="tk">${x.ticker}</div>
+    <div class="sec">${x.sector}</div><div class="wt">${x.weight}%</div></div>`).join('')+'</div>';
+}
+/* ---- table ---- */
+let sortKey='dev_sharpe',sortDir=-1;
+function leaderboard(c){
   const el=document.getElementById('table');
-  if(!cands.length){el.innerHTML='<div class="empty">No results yet.</div>';return;}
-  const top=[...cands].sort((a,b)=>(b.dev_sharpe??-9)-(a.dev_sharpe??-9)).slice(0,8);
-  el.innerHTML=`<table><thead><tr>
-    <th>#</th><th>Return / yr (honest test)</th><th>Bang-for-risk</th><th>Confidence (t)</th><th>Trust?</th>
-    </tr></thead><tbody>`+top.map((c,i)=>{
-      const ok=(c.holdout_t??0)>2&&(c.holdout_sharpe??0)>0.5;
-      return `<tr><td>${i+1}</td>
-        <td class="num">${c.holdout_alpha!=null?(c.holdout_alpha>0?'+':'')+c.holdout_alpha+'%':'—'}</td>
-        <td class="num">${c.holdout_sharpe??'—'}</td>
-        <td class="num">${c.holdout_t??'—'}</td>
-        <td>${ok?'<span class="pill good">✓</span>':'<span class="pill bad">no</span>'}</td></tr>`;
-    }).join('')+`</tbody></table>`;
+  if(!c.length){el.innerHTML='<div class="empty">No strategies yet.</div>';return;}
+  const rows=[...c].sort((a,b)=>((b[sortKey]??-9)-(a[sortKey]??-9))*(sortDir));
+  const cols=[['config','Strategy'],['holdout_alpha','Return/yr (honest)'],['holdout_sharpe','Bang-for-risk'],['holdout_t','Confidence'],['passed','Trust?']];
+  el.innerHTML=`<table><thead><tr>${cols.map(([k,l])=>`<th data-k="${k}">${l}${k===sortKey?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')}</tr></thead><tbody>`+
+    rows.slice(0,20).map(r=>`<tr>
+      <td class="cfg">${r.config}</td>
+      <td class="num">${r.holdout_alpha!=null?(r.holdout_alpha>0?'+':'')+r.holdout_alpha+'%':'—'}</td>
+      <td class="num">${r.holdout_sharpe??'—'}</td>
+      <td class="num">${r.holdout_t??'—'}</td>
+      <td>${r.passed?'<span class="pill good">✓</span>':'<span class="pill bad">no</span>'}</td></tr>`).join('')+`</tbody></table>`;
+  el.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===sortKey)sortDir*=-1;else{sortKey=k;sortDir=-1;}leaderboard(c);});
 }
-
-// theme toggle
-document.getElementById('theme').onclick=()=>{
-  const cur=document.documentElement.getAttribute('data-theme');
-  const next=cur==='dark'?'light':cur==='light'?'':'dark';
-  if(next)document.documentElement.setAttribute('data-theme',next);
-  else document.documentElement.removeAttribute('data-theme');
-};
-
-load().then(render).catch(e=>{document.getElementById('verdict-big').textContent='Could not load data yet.';});
+/* ---- controls ---- */
+document.getElementById('chart-tabs').onclick=e=>{const t=e.target.closest('.tab');if(!t)return;
+  CUR=t.dataset.c;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));drawChart();};
+document.getElementById('theme').onclick=()=>{const c=document.documentElement.getAttribute('data-theme');
+  const n=c==='dark'?'light':c==='light'?'':'dark';n?document.documentElement.setAttribute('data-theme',n):document.documentElement.removeAttribute('data-theme');drawChart();};
+load().then(render).catch(()=>{document.getElementById('verdict-big').textContent='Could not load data.';});
 </script>
 </body>
 </html>

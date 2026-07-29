@@ -1,11 +1,21 @@
 {
+<<<<<<< Updated upstream
   "updated": "2026-07-29T20:56+00:00",
   "trials": 15,
+=======
+  "updated": "2026-07-29T21:51+00:00",
+  "trials": 15,
+  "pass_count": 0,
+>>>>>>> Stashed changes
   "edge_found": false,
+  "days_remaining": 30,
+  "deadline": "2026-08-28",
+  "holdout_since": "2022-01-01",
   "best": {
     "holdout_alpha": 1.6,
     "holdout_sharpe": 0.21,
     "holdout_t": 0.45,
+<<<<<<< Updated upstream
     "plain": "buy the top 33% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
   },
   "candidates": [
@@ -98,6 +108,151 @@
       "holdout_sharpe": 0.36,
       "holdout_alpha": 3.69,
       "holdout_t": 0.76
+=======
+    "plain": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3"
+  },
+  "candidates": [
+    {
+      "ts": "2026-07-29T20:15:05",
+      "dev_sharpe": 0.28,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 5.81,
+      "holdout_t": 0.95,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:17:19",
+      "dev_sharpe": -0.07,
+      "holdout_sharpe": 0.59,
+      "holdout_alpha": 13.64,
+      "holdout_t": 1.24,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:20:12",
+      "dev_sharpe": -0.17,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.76,
+      "holdout_t": -0.05,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:22:30",
+      "dev_sharpe": 0.38,
+      "holdout_sharpe": 0.12,
+      "holdout_alpha": 1.17,
+      "holdout_t": 0.25,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:25:41",
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": 0.63,
+      "holdout_alpha": 11.56,
+      "holdout_t": 1.33,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:29:31",
+      "dev_sharpe": -0.21,
+      "holdout_sharpe": -0.12,
+      "holdout_alpha": -3.61,
+      "holdout_t": -0.25,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:32:40",
+      "dev_sharpe": 0.3,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.35,
+      "holdout_t": 0.39,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:34:57",
+      "dev_sharpe": 0.52,
+      "holdout_sharpe": 0.21,
+      "holdout_alpha": 1.6,
+      "holdout_t": 0.45,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:38:21",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.28,
+      "holdout_alpha": 2.82,
+      "holdout_t": 0.58,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:41:11",
+      "dev_sharpe": 0.24,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.26,
+      "holdout_t": 0.38,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:45:19",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.67,
+      "holdout_alpha": 11.92,
+      "holdout_t": 1.43,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:48:56",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.38,
+      "holdout_alpha": 6.0,
+      "holdout_t": 0.8,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:51:48",
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -1.05,
+      "holdout_t": -0.06,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:53:48",
+      "dev_sharpe": -0.14,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 8.61,
+      "holdout_t": 0.77,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-29T20:56:49",
+      "dev_sharpe": 0.44,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 3.69,
+      "holdout_t": 0.76,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $5",
+      "passed": false
+    }
+  ],
+  "progress": [
+    {
+      "day": "2026-07-29",
+      "cumulative": 15
+>>>>>>> Stashed changes
     }
   ],
   "book": {
@@ -157,15 +312,82 @@
       {
         "ticker": "VLY",
         "sector": "Financial Services",
+<<<<<<< Updated upstream
         "weight": 0.5
+=======
+        "weight": 0.51
+      },
+      {
+        "ticker": "VLY",
+        "sector": "Financial Services",
+        "weight": 0.51
+      },
+      {
+        "ticker": "APLE",
+        "sector": "Real Estate",
+        "weight": 0.51
+>>>>>>> Stashed changes
       },
       {
         "ticker": "CM",
         "sector": "Financial Services",
+<<<<<<< Updated upstream
+        "weight": 0.5
+=======
+        "weight": 0.51
+      },
+      {
+        "ticker": "STT",
+        "sector": "Financial Services",
         "weight": 0.5
       }
+    ],
+    "sectors": [
+      {
+        "name": "Industrials",
+        "pct": 18.1
+      },
+      {
+        "name": "Financial Services",
+        "pct": 16.6
+      },
+      {
+        "name": "Technology",
+        "pct": 14.8
+      },
+      {
+        "name": "Healthcare",
+        "pct": 14.0
+      },
+      {
+        "name": "Consumer Cyclical",
+        "pct": 8.0
+      },
+      {
+        "name": "Consumer Defensive",
+        "pct": 6.6
+      },
+      {
+        "name": "Basic Materials",
+        "pct": 6.5
+      },
+      {
+        "name": "Energy",
+        "pct": 5.7
+      },
+      {
+        "name": "Real Estate",
+        "pct": 5.3
+      },
+      {
+        "name": "Communication Services",
+        "pct": 3.6
+      },
+      {
+        "name": "Utilities",
+        "pct": 0.9
+>>>>>>> Stashed changes
+      }
     ]
-  },
-  "holdout_since": "2022-01-01",
-  "deadline": "2026-08-28"
+  }
 }
