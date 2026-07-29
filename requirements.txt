@@ -14,3 +14,7 @@ responses>=0.25.0
 pytest>=8.0.0
 pytest-cov>=4.1.0
 ta>=0.11.0
+scikit-learn>=1.9  # research/ ML pipeline (HistGradientBoosting)
+nasdaq-data-link>=1.0  # research/ Sharadar survivorship-free data connector
+duckdb>=1.0  # research/ data store (fast local SQL over Parquet)
+pyarrow>=15  # Parquet I/O for pandas

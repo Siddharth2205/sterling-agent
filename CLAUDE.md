@@ -1,80 +1,74 @@
 # Sterling — Claude Code Context
 
-## What This Is
-A Python financial agent for Canadian stock portfolio management. Generates BUY/HOLD/SELL/TRIM signals with calibrated confidence scores. Sends alerts via Telegram. Backtests on TSX data. CLI-driven, scheduled, no auto-trading.
+## What This Is (current direction)
+An **evidence-based equity research pipeline**. Given a broad, **survivorship-free** US
+universe (Sharadar bulk data, including delisted companies), it engineers point-in-time
+features, trains a gradient-boosted model to predict forward returns, and **validates
+out-of-sample** (walk-forward + net-of-cost portfolio sim) before believing any edge.
+
+The original heuristic "5-axis" BUY/HOLD/SELL agent was **retired** — diagnostics proved
+it had no edge at its trading horizon (see `DIAGNOSIS.md`). It still exists on the `master`
+branch for reference; branch `research/survivorship-ml` keeps only the research work.
 
 ## Architecture
 ```
-sterling/
-  config.py      — env loading, validation
-  portfolio.py   — holdings CRUD (data/portfolio.json)
-  data_feed.py   — yfinance + finnhub + pytrends, disk cache
-  analyst.py     — 5-axis scoring: technical/fundamental/sentiment/macro/insider
-  notifier.py    — Telegram bot, SQLite throttle (data/notifications.db)
-  backtester.py  — walk-forward backtest, outputs to data/backtest_<ts>/
-  scheduler.py   — APScheduler: 09:30, 12:30, 15:55 ET
-  cli.py         — click CLI entry point
+sterling/research/
+  config.py        — central paths + params (no hard-coded paths)
+  sharadar.py      — Sharadar REST + BULK download connector (survivorship-free source)
+  store.py         — DuckDB + Parquet data layer (query big data without loading it all)
+  survivorship.py  — universe selection, delisting map, delisting-aware labels
+  universe.py      — legacy free-data universe list (yfinance path)
+  dataset.py       — yfinance loader for benchmarks/macro (SPY, ^VIX)
+  features.py      — point-in-time features (price/technical + macro + fundamentals)
+  fundamentals.py  — pure point-in-time fundamental selection (as-of, no look-ahead)
+  labels.py        — forward returns incl. delisting-aware rule (dead names book real loss)
+  model.py         — HistGradientBoosting + walk-forward gate (ship/no-ship criteria)
+  portfolio_sim.py — net-of-cost top-N sim vs survivorship-neutral equal-weight baseline
+  validate.py      — information-coefficient / bucket edge diagnostics
+  pipeline.py      — orchestration (build_features -> analyze)
+  __main__.py      — CLI
 ```
 
 ## Key Commands
 ```bash
-# Activate venv (Windows)
 .venv\Scripts\activate
 
-# Install deps
-pip install -r requirements.txt
+python check_api_key.py                 # standalone Sharadar key health check
 
-# Install CLI in editable mode
-pip install -e .
+python -m sterling.research verify      # check API key responds
+python -m sterling.research parquet     # convert bulk CSVs -> Parquet (one-time)
+python -m sterling.research features    # build survivorship-free feature matrix
+python -m sterling.research analyze     # walk-forward + portfolio sim
+python -m sterling.research all         # features + analyze
 
-# Run full analysis
-sterling analyze
-
-# Add a holding
-sterling add SHOP.TO 5 98.50
-
-# Run backtest
-sterling backtest --years 3 --capital 1000
-
-# Start scheduler
-sterling run
-
-# One-shot run
-sterling run --once
-
-# Setup Telegram
-python setup_telegram.py
-
-# Run tests
 pytest -v
 ```
 
-## Environment Variables
-See `.env.example`. Copy to `.env` and fill in:
-- `FINNHUB_API_KEY` (required)
-- `TELEGRAM_BOT_TOKEN` (required)
-- `TELEGRAM_CHAT_ID` (required)
-- `NEWSAPI_KEY` (optional)
+## Data
+- Requires `NASDAQ_API_KEY` in `.env` (Sharadar). Never hard-code or print keys.
+- Bulk files in `data/sharadar_bulk/` (**gitignored**): `stocks_10Y.csv` -> `stocks.parquet`
+  (~400 MB), `tickers_full.csv` -> `tickers.parquet`.
+- Derived artifacts (`data/*.pkl`, `data/*.json`) are gitignored.
 
-## Data Files
-- `data/portfolio.json` — holdings (gitignored)
-- `data/notifications.db` — alert throttle state (gitignored)
-- `data/cache/` — 24h fundamental cache
-- `data/backtest_<timestamp>/` — backtest outputs
+## Data-layer principle
+Do NOT load multi-GB CSVs into pandas. Convert to Parquet once (`store.ensure_parquet`)
+and query slices with DuckDB (`store.load_prices`, `store.load_tickers`).
 
-## Signal Thresholds
-≥75 BUY | 60–74 ACCUMULATE | 40–59 HOLD | 25–39 TRIM | <25 SELL
+## Method principles (hard-won — see DIAGNOSIS.md)
+- No look-ahead: features/fundamentals are point-in-time; labels use a filing/return lag.
+- Survivorship-free: the universe includes delisted names; a company that dies books its
+  real loss, never silently dropped.
+- Validate out-of-sample before believing anything: walk-forward IC, then net-of-cost
+  top-N vs the **equal-weight universe of the same names** (cancels survivorship bias).
+- "Passing tests" != "makes money": a green suite proves the code does what we said, not
+  that the strategy has edge.
+
+## Status
+Survivorship-free 10-year run: concentrated top-15 beats the universe (~+17%/yr net) but
+**not yet statistically significant (t≈1.5)** and it dilutes fast. Next: full-history run
+for statistical power. Not deployable; for real capital an index/equal-weight is the
+honest default.
 
 ## Constraints
-- Wealthsimple has no public API — signals only, manual execution
-- $1,000 CAD account, max 4 positions, max 2% risk per trade ($20)
-- Skip tickers under $5 or <100k daily volume
-- All alerts end with: "Signal, not advice. You decide."
-
-## TSX Ticker Conventions
-- TSX: `SHOP.TO`, `ENB.TO`, `BNS.TO`
-- TSX-V: `ABX.V`
-- USD cross-listings flagged with 1.5% FX drag warning
-
-## Dependencies
-See `requirements.txt`. Key: yfinance, finnhub-python, pytrends, ta, APScheduler, click, python-telegram-bot, python-dotenv, pandas, numpy, matplotlib, seaborn.
+- No auto-trading. Research/signals only.
+- Keep secrets in `.env`; the connector redacts keys from any error/log.

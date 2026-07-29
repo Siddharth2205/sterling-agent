@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-sterling = "sterling.cli:cli"
+sterling = "sterling.research.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
