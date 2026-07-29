@@ -53,28 +53,23 @@ def _wturnover(cur: dict, prev: dict) -> float:
     return sum(abs(cur.get(k, 0.0) - prev.get(k, 0.0)) for k in keys)
 
 
-def simulate_neutral(panel: pd.DataFrame, long_frac: float = 0.2, short_frac: float = 0.0,
-                     sector_neutral: bool = True, inverse_vol: bool = True,
-                     horizon: int = 63, cost_bps: float = 10.0,
-                     spacing_cal_days: Optional[int] = None) -> dict:
-    """Risk-managed book. Long the top `long_frac` by (optionally sector-neutralized)
-    score, risk-weighted; optionally short the bottom `short_frac` (market-neutral)."""
-    if panel.empty:
-        return {"error": "empty panel"}
-    spacing = spacing_cal_days or int(horizon * 1.4)
+def _neutral_periods(panel: pd.DataFrame, signal_col: str, long_frac: float, short_frac: float,
+                     sector_neutral: bool, inverse_vol: bool, cost_bps: float,
+                     spacing: int) -> tuple[list, list]:
+    """Core rebalance loop for any signal column. Returns (net returns, universe returns)."""
     rebals = _rebalance_dates(sorted(panel["date"].unique()), spacing)
-
     prev_l: dict = {}
     prev_s: dict = {}
     net, univ = [], []
     for d in rebals:
         day = panel[panel["date"] == d].copy()
+        day = day[day[signal_col].notna()]
         if len(day) < 30:
             continue
         if sector_neutral:
-            day["sig"] = day["pred"] - day.groupby("sector")["pred"].transform("mean")
+            day["sig"] = day[signal_col] - day.groupby("sector")[signal_col].transform("mean")
         else:
-            day["sig"] = day["pred"]
+            day["sig"] = day[signal_col]
 
         lo = day.nlargest(max(1, int(len(day) * long_frac)), "sig")
         wl = _weights(lo, inverse_vol)
@@ -95,7 +90,33 @@ def simulate_neutral(panel: pd.DataFrame, long_frac: float = 0.2, short_frac: fl
 
         net.append(gross - cost)
         univ.append(float(day["fwd_return"].mean()))
+    return net, univ
 
+
+def neutral_excess_series(panel: pd.DataFrame, signal_col: str = "pred", long_frac: float = 0.2,
+                          sector_neutral: bool = True, inverse_vol: bool = True,
+                          horizon: int = 63, cost_bps: float = 10.0,
+                          spacing_cal_days: Optional[int] = None) -> np.ndarray:
+    """Per-period index-hedged (long-book minus universe) return series for any signal.
+    Used to measure a signal's standalone market-neutral performance and to correlate
+    signals against each other."""
+    spacing = spacing_cal_days or int(horizon * 1.4)
+    net, univ = _neutral_periods(panel, signal_col, long_frac, 0.0,
+                                 sector_neutral, inverse_vol, cost_bps, spacing)
+    return np.array(net) - np.array(univ)
+
+
+def simulate_neutral(panel: pd.DataFrame, long_frac: float = 0.2, short_frac: float = 0.0,
+                     sector_neutral: bool = True, inverse_vol: bool = True,
+                     horizon: int = 63, cost_bps: float = 10.0,
+                     spacing_cal_days: Optional[int] = None, signal_col: str = "pred") -> dict:
+    """Risk-managed book. Long the top `long_frac` by (optionally sector-neutralized)
+    score, risk-weighted; optionally short the bottom `short_frac` (market-neutral)."""
+    if panel.empty:
+        return {"error": "empty panel"}
+    spacing = spacing_cal_days or int(horizon * 1.4)
+    net, univ = _neutral_periods(panel, signal_col, long_frac, short_frac,
+                                 sector_neutral, inverse_vol, cost_bps, spacing)
     if len(net) < 2:
         return {"error": "not enough periods"}
     excess = np.array(net) - np.array(univ)
