@@ -1,31 +1,114 @@
 {
-  "updated": "2026-07-29T18:54+00:00",
-  "trials": 2,
+  "updated": "2026-07-29T20:56+00:00",
+  "trials": 15,
   "edge_found": false,
   "best": {
-    "holdout_alpha": 12.83,
-    "holdout_sharpe": 0.83,
-    "holdout_t": 1.77,
-    "plain": "buy the top 20% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
+    "holdout_alpha": 1.6,
+    "holdout_sharpe": 0.21,
+    "holdout_t": 0.45,
+    "plain": "buy the top 33% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
   },
   "candidates": [
     {
-      "dev_sharpe": 0.43,
-      "holdout_sharpe": 0.83,
-      "holdout_alpha": 12.83,
-      "holdout_t": 1.77
+      "dev_sharpe": 0.28,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 5.81,
+      "holdout_t": 0.95
     },
     {
-      "dev_sharpe": 0.0,
-      "holdout_sharpe": 0.03,
-      "holdout_alpha": 0.63,
-      "holdout_t": 0.07
+      "dev_sharpe": -0.07,
+      "holdout_sharpe": 0.59,
+      "holdout_alpha": 13.64,
+      "holdout_t": 1.24
+    },
+    {
+      "dev_sharpe": -0.17,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.76,
+      "holdout_t": -0.05
+    },
+    {
+      "dev_sharpe": 0.38,
+      "holdout_sharpe": 0.12,
+      "holdout_alpha": 1.17,
+      "holdout_t": 0.25
+    },
+    {
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": 0.63,
+      "holdout_alpha": 11.56,
+      "holdout_t": 1.33
+    },
+    {
+      "dev_sharpe": -0.21,
+      "holdout_sharpe": -0.12,
+      "holdout_alpha": -3.61,
+      "holdout_t": -0.25
+    },
+    {
+      "dev_sharpe": 0.3,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.35,
+      "holdout_t": 0.39
+    },
+    {
+      "dev_sharpe": 0.52,
+      "holdout_sharpe": 0.21,
+      "holdout_alpha": 1.6,
+      "holdout_t": 0.45
+    },
+    {
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.28,
+      "holdout_alpha": 2.82,
+      "holdout_t": 0.58
+    },
+    {
+      "dev_sharpe": 0.24,
+      "holdout_sharpe": 0.18,
+      "holdout_alpha": 1.26,
+      "holdout_t": 0.38
+    },
+    {
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.67,
+      "holdout_alpha": 11.92,
+      "holdout_t": 1.43
+    },
+    {
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.38,
+      "holdout_alpha": 6.0,
+      "holdout_t": 0.8
+    },
+    {
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -1.05,
+      "holdout_t": -0.06
+    },
+    {
+      "dev_sharpe": -0.14,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 8.61,
+      "holdout_t": 0.77
+    },
+    {
+      "dev_sharpe": 0.44,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 3.69,
+      "holdout_t": 0.76
     }
   ],
   "book": {
     "asof": "2026-07-24",
-    "count": 467,
+    "count": 525,
     "picks": [
+      {
+        "ticker": "CCO",
+        "sector": "Communication Services",
+        "weight": 1.84
+      },
       {
         "ticker": "RY",
         "sector": "Financial Services",
@@ -44,7 +127,7 @@
       {
         "ticker": "TD",
         "sector": "Financial Services",
-        "weight": 0.62
+        "weight": 0.61
       },
       {
         "ticker": "WSFS",
@@ -52,19 +135,14 @@
         "weight": 0.61
       },
       {
-        "ticker": "TFSL",
-        "sector": "Financial Services",
-        "weight": 0.59
+        "ticker": "TIL",
+        "sector": "Healthcare",
+        "weight": 0.6
       },
       {
         "ticker": "BPOP",
         "sector": "Financial Services",
-        "weight": 0.58
-      },
-      {
-        "ticker": "ABCB",
-        "sector": "Financial Services",
-        "weight": 0.56
+        "weight": 0.57
       },
       {
         "ticker": "HST",
@@ -74,17 +152,17 @@
       {
         "ticker": "NTRS",
         "sector": "Financial Services",
-        "weight": 0.53
-      },
-      {
-        "ticker": "EIX",
-        "sector": "Utilities",
         "weight": 0.52
       },
       {
-        "ticker": "BNY",
+        "ticker": "VLY",
         "sector": "Financial Services",
-        "weight": 0.51
+        "weight": 0.5
+      },
+      {
+        "ticker": "CM",
+        "sector": "Financial Services",
+        "weight": 0.5
       }
     ]
   },
