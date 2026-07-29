@@ -32,10 +32,17 @@ def csv_to_parquet(csv_path: Path, parquet_path: Path, force: bool = False) -> P
     if not csv_path.exists():
         raise FileNotFoundError(f"{csv_path} not found — download the Sharadar bulk file first")
     logger.info(f"converting {csv_path.name} -> {parquet_path.name} (Parquet/ZSTD)...")
+    tmp = config.DATA / "duckdb_tmp"
+    tmp.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
+    # Bound memory and spill to disk so multi-GB CSVs convert without OOM.
+    con.execute("SET preserve_insertion_order=false")
+    con.execute("SET memory_limit='3GB'")
+    con.execute(f"SET temp_directory='{tmp.as_posix()}'")
     con.execute(
-        f"COPY (SELECT * FROM read_csv_auto('{csv_path.as_posix()}', SAMPLE_SIZE=-1)) "
-        f"TO '{parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        f"COPY (SELECT * FROM read_csv_auto('{csv_path.as_posix()}', "
+        f"SAMPLE_SIZE=200000, IGNORE_ERRORS=true)) "
+        f"TO '{parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)"
     )
     con.close()
     logger.info(f"  wrote {parquet_path.name} "
@@ -77,26 +84,34 @@ def load_prices(universe: Iterable[str], parquet: Optional[Path] = None,
     parquet = parquet or config.STOCKS_PARQUET
     if not parquet.exists():
         csv_to_parquet(config.STOCKS_CSV, parquet)
-    uni_df = pd.DataFrame({"ticker": list(dict.fromkeys(universe))})
+    uni = list(dict.fromkeys(universe))
 
+    tmp = config.DATA / "duckdb_tmp"
+    tmp.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
-    con.register("uni", uni_df)
-    rows = con.execute(
-        f"SELECT s.ticker, s.date, s.open, s.high, s.low, s.closeadj, s.volume "
-        f"FROM read_parquet('{parquet.as_posix()}') s JOIN uni USING (ticker) "
-        f"WHERE s.closeadj IS NOT NULL "
-        f"ORDER BY s.ticker, s.date"
-    ).df()
-    con.close()
+    con.execute("SET preserve_insertion_order=false")
+    con.execute("SET memory_limit='3GB'")
+    con.execute(f"SET temp_directory='{tmp.as_posix()}'")
 
     out: dict[str, pd.DataFrame] = {}
-    for tk, g in rows.groupby("ticker", sort=False):
-        idx = pd.DatetimeIndex(pd.to_datetime(g["date"]).dt.tz_localize(None).dt.normalize())
-        df = pd.DataFrame({
-            "Open": g["open"].to_numpy(), "High": g["high"].to_numpy(),
-            "Low": g["low"].to_numpy(), "Close": g["closeadj"].to_numpy(),
-            "Volume": g["volume"].to_numpy(),
-        }, index=idx)
-        if len(df) >= min_bars:
-            out[tk] = df
+    batch = 800  # bound peak memory over full (multi-decade) history
+    for i in range(0, len(uni), batch):
+        uni_df = pd.DataFrame({"ticker": uni[i:i + batch]})
+        con.register("uni", uni_df)
+        rows = con.execute(
+            f"SELECT s.ticker, s.date, s.open, s.high, s.low, s.closeadj, s.volume "
+            f"FROM read_parquet('{parquet.as_posix()}') s JOIN uni USING (ticker) "
+            f"WHERE s.closeadj IS NOT NULL ORDER BY s.ticker, s.date"
+        ).df()
+        con.unregister("uni")
+        for tk, g in rows.groupby("ticker", sort=False):
+            idx = pd.DatetimeIndex(pd.to_datetime(g["date"]).dt.tz_localize(None).dt.normalize())
+            df = pd.DataFrame({
+                "Open": g["open"].to_numpy(), "High": g["high"].to_numpy(),
+                "Low": g["low"].to_numpy(), "Close": g["closeadj"].to_numpy(),
+                "Volume": g["volume"].to_numpy(),
+            }, index=idx)
+            if len(df) >= min_bars:
+                out[tk] = df
+    con.close()
     return out
