@@ -14,8 +14,23 @@ import pandas as pd
 
 from sterling.research import config
 from sterling.research.experiment import LEDGER, final_report, HOLDOUT_START
+from sterling.research.live import LEDGER as BOOK_LEDGER
 
 OUT = config.ROOT / "docs" / "dashboard_data.json"
+
+
+def _book_picks(n: int = 12) -> dict:
+    """Latest paper book (the market-neutral names it would hold), top by weight."""
+    if not BOOK_LEDGER.exists():
+        return {"asof": None, "count": 0, "picks": []}
+    led = pd.read_csv(BOOK_LEDGER)
+    if led.empty:
+        return {"asof": None, "count": 0, "picks": []}
+    asof = str(led["rebalance_date"].max())
+    b = led[led["rebalance_date"].astype(str) == asof].sort_values("weight", ascending=False)
+    picks = [{"ticker": r.ticker, "sector": getattr(r, "sector", "—"),
+              "weight": round(float(r.weight) * 100, 2)} for r in b.head(n).itertuples(index=False)]
+    return {"asof": asof, "count": int(len(b)), "picks": picks}
 
 
 def _plain_config(cfg: dict) -> str:
@@ -61,6 +76,7 @@ def build_data() -> dict:
             "plain": _plain_config(best_cfg),
         },
         "candidates": candidates,
+        "book": _book_picks(),
         "holdout_since": str(HOLDOUT_START),
         "deadline": "2026-08-28",
     }

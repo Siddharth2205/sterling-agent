@@ -58,6 +58,10 @@ jobs:
       - name: Run one search cycle (builds matrix on first run) + Telegram progress
         run: python -m sterling.research experiment -n 15 -v
 
+      - name: Refresh the paper book (market-neutral picks)
+        if: ${{ always() }}
+        run: python -m sterling.research book --no-notify || true
+
       - name: Rebuild the dashboard data
         if: ${{ always() }}
         run: python -m sterling.research dashboard || true

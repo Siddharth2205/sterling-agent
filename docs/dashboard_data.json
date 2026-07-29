@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-29T18:42+00:00",
+  "updated": "2026-07-29T18:54+00:00",
   "trials": 2,
   "edge_found": false,
   "best": {
@@ -22,6 +22,72 @@
       "holdout_t": 0.07
     }
   ],
+  "book": {
+    "asof": "2026-07-24",
+    "count": 467,
+    "picks": [
+      {
+        "ticker": "RY",
+        "sector": "Financial Services",
+        "weight": 0.71
+      },
+      {
+        "ticker": "BMO",
+        "sector": "Financial Services",
+        "weight": 0.64
+      },
+      {
+        "ticker": "BNS",
+        "sector": "Financial Services",
+        "weight": 0.62
+      },
+      {
+        "ticker": "TD",
+        "sector": "Financial Services",
+        "weight": 0.62
+      },
+      {
+        "ticker": "WSFS",
+        "sector": "Financial Services",
+        "weight": 0.61
+      },
+      {
+        "ticker": "TFSL",
+        "sector": "Financial Services",
+        "weight": 0.59
+      },
+      {
+        "ticker": "BPOP",
+        "sector": "Financial Services",
+        "weight": 0.58
+      },
+      {
+        "ticker": "ABCB",
+        "sector": "Financial Services",
+        "weight": 0.56
+      },
+      {
+        "ticker": "HST",
+        "sector": "Real Estate",
+        "weight": 0.53
+      },
+      {
+        "ticker": "NTRS",
+        "sector": "Financial Services",
+        "weight": 0.53
+      },
+      {
+        "ticker": "EIX",
+        "sector": "Utilities",
+        "weight": 0.52
+      },
+      {
+        "ticker": "BNY",
+        "sector": "Financial Services",
+        "weight": 0.51
+      }
+    ]
+  },
   "holdout_since": "2022-01-01",
   "deadline": "2026-08-28"
 }

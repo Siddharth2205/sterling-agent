@@ -74,6 +74,13 @@
   .toggle{cursor:pointer;color:var(--accent);background:none;border:none;font-size:.85rem}
   footer{color:var(--muted);font-size:.82rem;margin-top:26px;text-align:center;line-height:1.6}
   .empty{color:var(--muted);text-align:center;padding:30px}
+  /* picks chips */
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+  .chip{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);border-radius:10px;
+    padding:9px 11px;background:var(--bg)}
+  .chip .tk{font-weight:700;letter-spacing:-.01em}
+  .chip .sec{color:var(--muted);font-size:.74rem}
+  .chip .wt{color:var(--accent);font-size:.8rem;font-weight:650;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -97,6 +104,15 @@
 
   <!-- TILES -->
   <div class="tiles" id="tiles"></div>
+
+  <!-- CURRENT PICKS -->
+  <div class="card">
+    <h2>What it would hold right now
+      <span class="info" tabindex="0">i<span class="tip">The market-neutral “paper book” — the stocks the model would buy today, spread across sectors and weighted so calmer stocks get more. These are only real, liquid names you could actually trade. It's a paper test to learn from, <b>not</b> a buy list or advice.</span></span>
+    </h2>
+    <p class="muted" id="book-sub"></p>
+    <div id="book"></div>
+  </div>
 
   <!-- CHART -->
   <div class="card">
@@ -122,7 +138,7 @@
 </div>
 
 <script id="embedded" type="application/json">{
-  "updated": "2026-07-29T18:39+00:00",
+  "updated": "2026-07-29T18:54+00:00",
   "trials": 2,
   "edge_found": false,
   "best": {
@@ -145,6 +161,72 @@
       "holdout_t": 0.07
     }
   ],
+  "book": {
+    "asof": "2026-07-24",
+    "count": 467,
+    "picks": [
+      {
+        "ticker": "RY",
+        "sector": "Financial Services",
+        "weight": 0.71
+      },
+      {
+        "ticker": "BMO",
+        "sector": "Financial Services",
+        "weight": 0.64
+      },
+      {
+        "ticker": "BNS",
+        "sector": "Financial Services",
+        "weight": 0.62
+      },
+      {
+        "ticker": "TD",
+        "sector": "Financial Services",
+        "weight": 0.62
+      },
+      {
+        "ticker": "WSFS",
+        "sector": "Financial Services",
+        "weight": 0.61
+      },
+      {
+        "ticker": "TFSL",
+        "sector": "Financial Services",
+        "weight": 0.59
+      },
+      {
+        "ticker": "BPOP",
+        "sector": "Financial Services",
+        "weight": 0.58
+      },
+      {
+        "ticker": "ABCB",
+        "sector": "Financial Services",
+        "weight": 0.56
+      },
+      {
+        "ticker": "HST",
+        "sector": "Real Estate",
+        "weight": 0.53
+      },
+      {
+        "ticker": "NTRS",
+        "sector": "Financial Services",
+        "weight": 0.53
+      },
+      {
+        "ticker": "EIX",
+        "sector": "Utilities",
+        "weight": 0.52
+      },
+      {
+        "ticker": "BNY",
+        "sector": "Financial Services",
+        "weight": 0.51
+      }
+    ]
+  },
   "holdout_since": "2022-01-01",
   "deadline": "2026-08-28"
 }</script>
@@ -165,7 +247,8 @@ function load(){
 }
 
 function render(d){
-  document.getElementById('updated').textContent = d.updated ? '· updated '+d.updated.replace('T',' ')+' UTC' : '';
+  document.getElementById('updated').textContent = d.updated
+    ? '· updated '+new Date(d.updated).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'})+' (your time)' : '';
   document.getElementById('deadline').textContent = d.deadline || '';
   const cands=(d.candidates||[]).filter(c=>c.holdout_sharpe!=null);
 
@@ -196,10 +279,22 @@ function render(d){
     + (b.plain?`<div class="tile" style="grid-column:1/-1"><div class="label">Best strategy, in plain words ${info('best')}</div>
        <div class="value small">${b.plain}</div></div>`:'');
 
+  // current picks
+  book(d.book||{});
   // scatter
   chart(cands);
   // table
   table(cands);
+}
+
+function book(bk){
+  const el=document.getElementById('book'), sub=document.getElementById('book-sub');
+  const picks=bk.picks||[];
+  if(!picks.length){ sub.textContent=''; el.innerHTML='<div class="empty">No paper book yet — it appears once the model has run.</div>'; return; }
+  sub.textContent = `As of ${bk.asof} · holding ${bk.count} names, sector-balanced (top ${picks.length} shown by size)`;
+  el.innerHTML = '<div class="chips">'+picks.map(p=>`
+    <div class="chip"><span class="tk">${p.ticker}</span>
+      <span class="sec">${p.sector}</span><span class="wt">${p.weight}%</span></div>`).join('')+'</div>';
 }
 
 function chart(cands){
