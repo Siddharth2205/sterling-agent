@@ -27,3 +27,22 @@ class TestSimulate:
     def test_no_signal_no_alpha(self):
         rep = ps.simulate(_panel(signal=0.0, seed=3), top_n=8, horizon=63, cost_bps=10)
         assert abs(rep["net_alpha_vs_universe_pct_per_period"]) < 0.5
+
+
+class TestSimulateBook:
+    def test_series_stats_shapes(self):
+        s = ps._series_stats([0.02, -0.01, 0.03, 0.00, 0.015])
+        assert set(["cagr_pct","sharpe","max_drawdown_pct"]).issubset(s)
+        assert s["max_drawdown_pct"] <= 0
+
+    def test_broad_long_beats_universe_with_signal(self):
+        rep = ps.simulate_book(_panel(signal=0.05, seed=1, n_tickers=60),
+                               long_frac=0.2, cost_bps=10)
+        assert rep["beats_universe_cagr"] is True
+        assert rep["net_alpha_vs_universe_annual_pct"] > 0
+
+    def test_long_short_positive_on_monotonic_signal(self):
+        rep = ps.simulate_book(_panel(signal=0.05, seed=2, n_tickers=60),
+                               long_frac=0.2, short_frac=0.2, cost_bps=10)
+        assert "short" in rep["mode"]
+        assert rep["strategy_net"]["total_return_pct"] > 0
