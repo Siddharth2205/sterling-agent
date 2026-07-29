@@ -23,6 +23,8 @@ def zscore_by_date(df: pd.DataFrame, col: str) -> pd.Series:
 
 
 def combine(df: pd.DataFrame, cols: list[str]) -> pd.Series:
-    """Equal-weight blend of several signals via their per-date z-scores."""
-    zs = [zscore_by_date(df, c) for c in cols]
-    return sum(zs) / len(zs)
+    """Equal-weight blend of several signals via their per-date z-scores. Averages only
+    the components present for each row (a name missing one metric is still scored from
+    the others), rather than collapsing to NaN."""
+    z = pd.concat([zscore_by_date(df, c).rename(c) for c in cols], axis=1)
+    return z.mean(axis=1)   # skipna=True → per-row mean of available signals
