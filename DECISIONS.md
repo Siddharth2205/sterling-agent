@@ -55,14 +55,19 @@ The walk-forward engine uses a 5-axis composite signal with the following fideli
 | Axis        | Fidelity       | Notes |
 |-------------|----------------|-------|
 | technical   | fully historical | Price history slice used up to scan date — no look-ahead |
-| fundamental | **snapshot proxy** | yfinance returns current-day values, not point-in-time historical. Introduces look-ahead bias in P/E, FCF yield, etc. Accept and document; fixing requires a paid point-in-time data vendor. |
+| fundamental | **point-in-time** | Reconstructed from dated financial statements (annual backbone + quarterly TTM refinement) with a filing lag (annual 90d, quarterly 50d). A scan on date D only sees numbers public by D. Missing history → neutral 50, never today's snapshot. See `sterling/hist_fundamentals.py`. Coverage reported in stats as `fundamental_pit_coverage_pct`. |
 | sentiment   | neutral 50.0   | No free API provides historical news sentiment compatible with daily walk-forward |
 | macro       | fully historical | VIX (^VIX) and TSX Composite (^GSPTSE) fetched from yfinance per scan date |
 | insider     | neutral 50.0   | Finnhub free tier does not provide dated historical insider transactions |
 
 `apply_macro_overlay()` is now wired into the backtest loop and fires on historical VIX/TSX data.
 
-Previous behaviour (pre-fix): the backtester used `_quick_signal()` — RSI + MACD + SMA only — and never called `apply_macro_overlay()`. This was the primary cause of the measured +5.08% CAGR vs +26.79% XIC.TO: the backtest was not testing Sterling, it was testing a 1990s technical model.
+### Fidelity history
+- **Original**: the backtester used `_quick_signal()` — RSI + MACD + SMA only — and never called `apply_macro_overlay()`. This was the primary cause of the measured +5.08% CAGR vs +26.79% XIC.TO: the backtest was not testing Sterling, it was testing a 1990s technical model.
+- **Stage 1 (de-bias)**: the fundamental axis previously used a **current-snapshot proxy** — today's P/E, revenue growth, ROE applied to every historical scan date. Since fundamentals are 40% of the score, this was look-ahead bias that flattered every number. Replaced with point-in-time reconstruction (above). Caveat: yfinance statements are *restated* figures, not true as-originally-reported vintage data, so a small residual bias remains; the filing lag is conservative to compensate.
+
+### Survivorship bias (known, unfixed)
+`TSX60_TICKERS` is the **current** index membership. Names dropped or delisted over the backtest window never appear, so the universe is pre-filtered to survivors — an upward bias on returns. Point-in-time index constituent history is not available on free data, so this remains a documented limitation, surfaced in stats as `survivorship_bias: "current-constituents (upward bias)"`. Any headline backtest number should be read as an **optimistic** estimate for this reason.
 
 ## Backtester Hold Parameters
 - `hold_days` (default 20): maximum bars held before forced time-exit.

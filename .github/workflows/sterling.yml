@@ -1,13 +1,20 @@
 name: Sterling Paper Trading
 
+# PAUSED 2026-07-27: scheduled paper trading is disabled following edge validation
+# (see DIAGNOSIS.md). The composite score showed no predictive edge at the 10–20 day
+# horizon this strategy trades on (information coefficient ≈ 0 / slightly negative;
+# top-scored names underperformed XIC.TO). Running a live loop on a model with no
+# demonstrable edge produces the feeling of discipline without the substance.
+# To resume, uncomment the `schedule:` block below.
+#
 # Three daily runs aligned to TSX market hours (UTC offsets assume no DST adjustment;
 # ET is UTC-4 in summer, UTC-5 in winter — cron times are approximate ±1h in winter).
 on:
-  schedule:
-    - cron: '30 13 * * 1-5'   # 09:30 ET — TSX open
-    - cron: '30 16 * * 1-5'   # 12:30 ET — midday
-    - cron: '55 19 * * 1-5'   # 15:55 ET — TSX close
-  workflow_dispatch:           # allow manual trigger for testing
+  # schedule:
+  #   - cron: '30 13 * * 1-5'   # 09:30 ET — TSX open
+  #   - cron: '30 16 * * 1-5'   # 12:30 ET — midday
+  #   - cron: '55 19 * * 1-5'   # 15:55 ET — TSX close
+  workflow_dispatch:           # manual trigger only (scheduled runs paused)
 
 # Prevent two runs from overlapping (queues, never cancels in progress).
 concurrency:

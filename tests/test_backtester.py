@@ -47,7 +47,7 @@ def _make_preloaded(tickers=None, with_macro=False):
         "price_data": data,
         "xic": xic,
         "macro_by_date": macro_by_date,
-        "fundamentals": {t: {} for t in tickers},
+        "hist_fundamentals": {t: [] for t in tickers},
         "ticker_dates": ticker_dates,
     }
 
@@ -411,3 +411,21 @@ class TestSweepBacktests:
         out = backtester.save_sweep_results(results, output_dir=tmp_path / "sw")
         assert (out / "sweep_comparison.csv").exists()
         assert (out / "summary_t65_h5.json").exists()
+
+
+# ── NaN-bar robustness (regression: yfinance current-session NaN close) ────────
+
+class TestNaNRobustStats:
+    def test_compute_stats_never_returns_nan_final_value(self):
+        import datetime as _dt
+        import math
+        # Equity curve whose final bar is NaN (as a NaN price bar would produce).
+        base = _dt.date(2024, 1, 1)
+        curve = [(base + _dt.timedelta(days=i), v)
+                 for i, v in enumerate([1000.0, 1010.0, 1005.0, float("nan")])]
+        bench = [(base, 1000.0), (base + _dt.timedelta(days=3), float("nan"))]
+        stats = backtester._compute_stats(curve, [], 1000.0, bench)
+        assert not math.isnan(stats["cagr_pct"])
+        assert not math.isnan(stats["benchmark_xic_cagr_pct"])
+        # Falls back to the last finite equity value (1005.0), not NaN.
+        assert stats["final_value_cad"] == 1005.0

@@ -2,6 +2,12 @@
 
 A Python financial agent that scores your TSX/TSX-V holdings across five axes, generates BUY/HOLD/SELL/TRIM signals with calibrated confidence scores, and pushes alerts to your phone via Telegram. CLI-driven. No auto-trading. Built for a \$1,000 CAD account managed through Wealthsimple Trade.
 
+> **⚠️ Status (2026-07-27): not a live trading signal.** After removing look-ahead bias from
+> the backtester, edge validation found the composite score has **no predictive edge at the
+> 10–20 day horizon the strategy trades** (information coefficient ≈ 0). Scheduled paper trading
+> is paused; for real capital, hold the index (XIC.TO). Full write-up: [DIAGNOSIS.md](DIAGNOSIS.md).
+> Sterling is retained as a research/learning project.
+
 ---
 
 ## Requirements

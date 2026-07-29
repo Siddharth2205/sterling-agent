@@ -18,3 +18,13 @@ build/
 .pytest_cache/
 .mypy_cache/
 .claude/
+
+# ── Research pipeline: large & generated data (never commit) ──
+data/sharadar_bulk/
+data/sharadar_cache/
+data/research_cache/
+data/*.pkl
+data/*.json
+data/paper_trades_with_outcomes.csv
+# Throwaway one-off runner scripts (logic lives in sterling/research/)
+/scripts_*.py

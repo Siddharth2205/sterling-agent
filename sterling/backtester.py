@@ -2,14 +2,20 @@
 
 Signal fidelity notes (see also DECISIONS.md):
   - Technical axis: fully historical (uses price history slice at each scan date).
-  - Fundamental axis: current-snapshot proxy — yfinance returns present-day values,
-    NOT point-in-time historical. This introduces look-ahead bias in the fundamental
-    score. Accept the limitation; document it loudly.
+  - Fundamental axis: point-in-time — reconstructed from dated financial statements
+    with a filing lag (sterling.hist_fundamentals), so a scan on date D only sees
+    numbers public by D. When no statement history is available, the axis falls back
+    to a neutral 50 (never today's snapshot). Coverage is reported in the stats.
   - Sentiment axis: fixed at 50.0 (neutral). No free historical sentiment API exists.
   - Macro axis: fully historical — VIX (^VIX) and TSX (^GSPTSE) fetched from yfinance.
     apply_macro_overlay() is now wired into every weekly scan.
   - Insider axis: fixed at 50.0 (neutral). Finnhub free tier does not provide dated
     historical insider transactions compatible with walk-forward simulation.
+
+Survivorship bias: TSX60_TICKERS is the *current* index membership. Names removed
+from the index over the window are absent, which biases returns upward. Point-in-time
+constituent history is not available on free data — this remains a known limitation,
+flagged in the stats as `survivorship_bias: "current-constituents (upward bias)"`.
 """
 
 import csv
@@ -29,6 +35,8 @@ import pandas as pd
 import seaborn as sns
 import yfinance as yf
 import ta
+
+from sterling.hist_fundamentals import fundamentals_as_of
 
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
@@ -59,6 +67,10 @@ def _get_history_safe(ticker: str, start: str, end: str) -> Optional[pd.DataFram
     try:
         t = yf.Ticker(ticker)
         df = t.history(start=start, end=end, auto_adjust=True)
+        # yfinance returns a NaN-close row for the current, not-yet-settled session.
+        # Left in, that single bar poisons equity/benchmark curves into NaN. Drop any
+        # bar without a valid close so downstream price math is always finite.
+        df = df[df["Close"].notna()]
         if df.empty or len(df) < 50:
             return None
         return df
@@ -72,6 +84,7 @@ def _get_index_history(ticker: str, start: str, end: str) -> Optional[pd.DataFra
     try:
         t = yf.Ticker(ticker)
         df = t.history(start=start, end=end, auto_adjust=True)
+        df = df[df["Close"].notna()]  # drop the current incomplete session's NaN bar
         return df if not df.empty else None
     except Exception as e:
         logger.warning(f"Index history fetch failed for {ticker}: {e}")
@@ -268,24 +281,25 @@ def load_backtest_data(
         xic = list(price_data.values())[0] if price_data else pd.DataFrame()
 
     macro_by_date: dict = {}
-    fundamentals: dict = {}
+    hist_fundamentals: dict = {}
 
     if use_full_signal:
         logger.info("[load_backtest_data] Fetching historical macro (VIX + TSX)...")
         macro_by_date = _fetch_historical_macro(start_str, end_str)
         logger.info(f"  Macro data: {len(macro_by_date)} dates")
 
-        # Fetch current-snapshot fundamentals once per ticker.
-        # WARNING: these are NOT point-in-time — they represent today's values
-        # used as a proxy across the entire backtest window.
-        # For CDR tickers (.NE), get_fundamentals() redirects to the US underlying internally.
-        logger.info("[load_backtest_data] Fetching current-snapshot fundamentals (not point-in-time)...")
-        from sterling import data_feed
+        # Point-in-time fundamentals: reconstruct each ticker's metrics from dated
+        # financial statements, so a scan on date D only ever sees numbers filed by D.
+        # Replaces the old current-snapshot proxy (look-ahead bias). Missing history
+        # falls back to a neutral 50 at scoring time — never today's snapshot.
+        # For CDR tickers (.NE), the lookup redirects to the US underlying internally.
+        logger.info("[load_backtest_data] Reconstructing point-in-time fundamentals from dated statements...")
+        from sterling.hist_fundamentals import get_historical_fundamentals
         for ticker in price_data:
             try:
-                fundamentals[ticker] = data_feed.get_fundamentals(ticker)
+                hist_fundamentals[ticker] = get_historical_fundamentals(ticker)
             except Exception:
-                fundamentals[ticker] = {}
+                hist_fundamentals[ticker] = []
 
     # Determine common trading calendar from the first loaded ticker
     if price_data:
@@ -298,7 +312,7 @@ def load_backtest_data(
         "price_data": price_data,
         "xic": xic,
         "macro_by_date": macro_by_date,
-        "fundamentals": fundamentals,
+        "hist_fundamentals": hist_fundamentals,
         "ticker_dates": ticker_dates,
         "start_str": start_str,
         "end_str": end_str,
@@ -325,7 +339,7 @@ def scan_score_distribution(
 
     price_data = bundle["price_data"]
     macro_by_date = bundle.get("macro_by_date", {})
-    fundamentals = bundle.get("fundamentals", {})
+    hist_fundamentals = bundle.get("hist_fundamentals", {})
     ticker_dates = bundle["ticker_dates"]
 
     warmup = 200
@@ -353,7 +367,7 @@ def scan_score_distribution(
                     continue
                 base = ticker.replace(".TO", "").replace(".V", "").replace(".NE", "").upper()
                 is_energy = base in _ENERGY_BASES
-                fund = fundamentals.get(ticker, {})
+                fund = fundamentals_as_of(hist_fundamentals.get(ticker, []), date, price)
                 pre, post = _full_signal_backtest(hist_slice, fund, macro_today, is_energy)
                 records.append({
                     "date": str(date),
@@ -421,14 +435,14 @@ def run_backtest(
         price_data = _preloaded["price_data"]
         xic = _preloaded["xic"]
         macro_by_date = _preloaded.get("macro_by_date", {})
-        fundamentals = _preloaded.get("fundamentals", {})
+        hist_fundamentals = _preloaded.get("hist_fundamentals", {})
         ticker_dates = _preloaded["ticker_dates"]
     else:
         bundle = load_backtest_data(years, tickers, use_full_signal=use_full_signal, universe=universe)
         price_data = bundle["price_data"]
         xic = bundle["xic"]
         macro_by_date = bundle.get("macro_by_date", {})
-        fundamentals = bundle.get("fundamentals", {})
+        hist_fundamentals = bundle.get("hist_fundamentals", {})
         ticker_dates = bundle["ticker_dates"]
 
     if not price_data:
@@ -453,11 +467,10 @@ def run_backtest(
         f"over {len(scan_dates)} days, threshold={signal_threshold}, "
         f"hold={hold_days}, min_hold={min_hold_days}"
     )
-    if use_full_signal:
-        logger.warning(
-            "REMINDER: fundamental scores use current-snapshot values, "
-            "not point-in-time historical. See DECISIONS.md."
-        )
+    # Coverage: how often a scan had real point-in-time fundamentals vs. a neutral
+    # fallback. Reported in stats so the fundamental axis's true weight is visible.
+    fund_hits = 0
+    fund_total = 0
 
     cash = capital_cad
     positions: dict = {}
@@ -550,7 +563,10 @@ def run_backtest(
                 if use_full_signal:
                     base = ticker.replace(".TO", "").replace(".V", "").replace(".NE", "").upper()
                     is_energy = base in _ENERGY_BASES
-                    fund = fundamentals.get(ticker, {})
+                    fund = fundamentals_as_of(hist_fundamentals.get(ticker, []), date, price)
+                    fund_total += 1
+                    if fund:
+                        fund_hits += 1
                     pre_score, post_score = _full_signal_backtest(
                         hist_slice, fund, macro_today, is_energy
                     )
@@ -649,6 +665,14 @@ def run_backtest(
     result.stats["min_hold_days"] = min_hold_days
     result.stats["signal_threshold"] = signal_threshold
     result.stats["macro_overlay_fire_count"] = len(result.macro_overlay_events)
+    if use_full_signal:
+        cov = round(fund_hits / fund_total * 100, 1) if fund_total else 0.0
+        result.stats["fundamental_pit_coverage_pct"] = cov
+        result.stats["survivorship_bias"] = "current-constituents (upward bias)"
+        logger.info(
+            f"Point-in-time fundamental coverage: {cov}% of "
+            f"{fund_total} scan-evaluations had dated statement data."
+        )
     return result
 
 
@@ -754,8 +778,13 @@ def _compute_stats(equity_curve: list, trades: list, capital_cad: float, benchma
     total_days = (dates[-1] - dates[0]).days
     years = total_days / 365.25
 
-    final_value = values[-1]
-    cagr = ((final_value / capital_cad) ** (1 / years) - 1) * 100 if years > 0 else 0
+    # Defensive: a NaN/non-positive final value must never silently yield NaN stats.
+    final_value = next((v for v in reversed(values) if pd.notna(v)), capital_cad)
+    cagr = (
+        ((final_value / capital_cad) ** (1 / years) - 1) * 100
+        if years > 0 and final_value > 0
+        else 0.0
+    )
 
     rf_daily = 0.04 / 252
     excess = returns - rf_daily
@@ -795,9 +824,10 @@ def _compute_stats(equity_curve: list, trades: list, capital_cad: float, benchma
     bm_cagr = 0
     bm_total_return = 0
     if benchmark_curve and len(benchmark_curve) > 1:
-        bm_end = benchmark_curve[-1][1]
+        bm_vals = [v for _, v in benchmark_curve if pd.notna(v)]
+        bm_end = bm_vals[-1] if bm_vals else capital_cad
         bm_total_return = (bm_end - capital_cad) / capital_cad * 100
-        bm_cagr = ((bm_end / capital_cad) ** (1 / years) - 1) * 100 if years > 0 else 0
+        bm_cagr = ((bm_end / capital_cad) ** (1 / years) - 1) * 100 if years > 0 and bm_end > 0 else 0
 
     return {
         "start_date": str(dates[0]),
