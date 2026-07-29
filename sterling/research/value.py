@@ -42,6 +42,8 @@ def attach_value(panel: pd.DataFrame, parquet: Optional[Path] = None) -> pd.Data
         f"ON p.ticker = v.ticker AND p.date >= v.date"
     ).df()
     con.close()
+    # DuckDB returns date as datetime64; match the panel's plain-date dtype for the merge.
+    res["date"] = pd.to_datetime(res["date"]).dt.date
     return panel.merge(res, on=["date", "ticker"], how="left")
 
 
