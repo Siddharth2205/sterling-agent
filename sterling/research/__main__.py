@@ -19,7 +19,8 @@ import sys
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="sterling.research")
     parser.add_argument("command",
-                        choices=["verify", "parquet", "features", "analyze", "all"])
+                        choices=["verify", "parquet", "features", "analyze", "all",
+                                 "book", "evaluate"])
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -44,6 +45,15 @@ def main(argv=None) -> int:
         from sterling.research import pipeline
         r = pipeline.run_all()
         print(json.dumps(r["walkforward"], indent=2, default=str))
+    elif args.command == "book":
+        from sterling.research import live
+        asof, book = live.generate_book()
+        n = live.log_book(asof, book)
+        print(f"Paper book for {asof}: {n} names, logged to {live.LEDGER.name}")
+        print(book.head(15).to_string(index=False))
+    elif args.command == "evaluate":
+        from sterling.research import live
+        print(json.dumps(live.evaluate(), indent=2, default=str))
     return 0
 
 

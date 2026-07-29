@@ -29,3 +29,4 @@ data/paper_trades_with_outcomes.csv
 # Throwaway one-off runner scripts (logic lives in sterling/research/)
 /scripts_*.py
 *.parquet
+data/*.joblib
