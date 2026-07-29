@@ -115,3 +115,26 @@ def load_prices(universe: Iterable[str], parquet: Optional[Path] = None,
                 out[tk] = df
     con.close()
     return out
+
+
+def download_bulk(table: str, years: str = "full", dest=None):
+    """Download a Sharadar bulk table (stocks/tickers/...) to a CSV. Reusable by the
+    cloud bootstrap. Reads the key from env; follows the redirect to the file."""
+    import io, os, zipfile, requests
+    from dotenv import dotenv_values
+    key = (dotenv_values(".env").get("NASDAQ_API_KEY") or dotenv_values(".env").get("SHARADAR_API_KEY")
+           or os.getenv("NASDAQ_API_KEY") or os.getenv("SHARADAR_API_KEY"))
+    dest = Path(dest) if dest else config.BULK / f"{table}_{years}.csv"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    r = requests.get(f"https://api.sharadar.com/v1.0/data/{table}",
+                     params={"api_key": key, "years": years}, allow_redirects=True,
+                     stream=True, timeout=3600)
+    r.raise_for_status()
+    buf = io.BytesIO()
+    for chunk in r.iter_content(1 << 20):
+        buf.write(chunk)
+    z = zipfile.ZipFile(buf)
+    name = z.namelist()[0]
+    z.extract(name, dest.parent)
+    os.replace(dest.parent / name, dest)
+    return dest

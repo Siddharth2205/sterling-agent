@@ -1,0 +1,75 @@
+name: Sterling Autonomous Strategy Search
+
+# Runs the honest strategy search daily until ~Aug 28, then sends a final Telegram report.
+# First run builds the survivorship-free matrix from the Sharadar bulk (~40 min) and caches
+# it; later runs restore the cache and just search. The leaderboard is committed back to the
+# repo so it persists and you can watch it grow.
+#
+# Required repo Secrets (Settings → Secrets and variables → Actions):
+#   NASDAQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+
+on:
+  schedule:
+    - cron: '0 7 * * *'      # daily 07:00 UTC
+  workflow_dispatch:          # manual "Run workflow" button
+
+permissions:
+  contents: write             # to commit the leaderboard back
+
+concurrency:
+  group: sterling-search
+  cancel-in-progress: false
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    env:
+      NASDAQ_API_KEY: ${{ secrets.NASDAQ_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Stop after the campaign ends (Aug 28, 2026)
+        run: |
+          if [ "$(date -u +%Y%m%d)" -gt "20260828" ]; then
+            echo "Campaign over — exiting."; exit 0
+          fi
+
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: 'pip' }
+
+      - name: Install
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Restore data cache (bulk + built matrix)
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/sharadar_bulk
+            data/survivorship_full_features.pkl
+            data/experiment_matrix.pkl
+          key: sterling-matrix-v1
+
+      - name: Run one search cycle (builds matrix on first run) + Telegram progress
+        run: python -m sterling.research experiment -n 15 -v
+
+      - name: Final report on/after Aug 28
+        if: ${{ always() }}
+        run: |
+          if [ "$(date -u +%Y%m%d)" -ge "20260828" ]; then
+            python -m sterling.research experiment-final
+          fi
+
+      - name: Commit the leaderboard back
+        if: ${{ always() }}
+        run: |
+          git config user.name  "sterling-bot"
+          git config user.email "sterling-bot@users.noreply.github.com"
+          git add -f data/experiment_leaderboard.csv || true
+          git commit -m "chore: search leaderboard update [skip ci]" || echo "nothing to commit"
+          git push || echo "push skipped"

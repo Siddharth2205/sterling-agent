@@ -40,20 +40,17 @@ def _usable_features(train: pd.DataFrame, features: list) -> list:
     return [f for f in features if train[f].nunique(dropna=True) >= 2]
 
 
-def _make_model():
+def _make_model(params: dict | None = None):
     from sklearn.ensemble import HistGradientBoostingRegressor
     # Modest capacity + regularization: limited depth, L2, early-ish stopping. The point
-    # is a robust signal, not a maximally-fit training curve.
-    return HistGradientBoostingRegressor(
-        max_depth=3,
-        learning_rate=0.05,
-        max_iter=400,
-        l2_regularization=1.0,
-        min_samples_leaf=200,
-        early_stopping=True,
-        validation_fraction=0.15,
-        random_state=42,
-    )
+    # is a robust signal, not a maximally-fit training curve. `params` lets the autonomous
+    # search vary depth/learning-rate/leaf-size etc.
+    base = dict(max_depth=3, learning_rate=0.05, max_iter=400, l2_regularization=1.0,
+                min_samples_leaf=200, early_stopping=True, validation_fraction=0.15,
+                random_state=42)
+    if params:
+        base.update(params)
+    return HistGradientBoostingRegressor(**base)
 
 
 def _ic(pred: np.ndarray, actual: np.ndarray) -> float:
@@ -103,6 +100,7 @@ def walk_forward(
     n_folds: int = 5,
     horizon: int = 63,
     features: Optional[list] = None,
+    model_params: dict | None = None,
 ) -> dict:
     """Expanding-window walk-forward. Returns a JSON-friendly report."""
     features = features or ALL_FEATURES
@@ -127,7 +125,7 @@ def walk_forward(
             continue
 
         used = _usable_features(train, features)
-        model = _make_model()
+        model = _make_model(model_params)
         model.fit(train[used], train["label"])
         test["pred"] = model.predict(test[used])
 
@@ -183,6 +181,7 @@ def generate_oos_predictions(
     n_folds: int = 5,
     horizon: int = 63,
     features: Optional[list] = None,
+    model_params: dict | None = None,
 ) -> pd.DataFrame:
     """Re-run the walk-forward and return the pooled out-of-sample prediction panel
     with realized returns attached: [date, ticker, market, pred, fwd_return, bench_fwd,
@@ -203,7 +202,7 @@ def generate_oos_predictions(
         if len(train) < 500 or len(test) < 100:
             continue
         used = _usable_features(train, features)
-        m = _make_model()
+        m = _make_model(model_params)
         m.fit(train[used], train["label"])
         test["pred"] = m.predict(test[used])
         frames.append(test[keep + ["pred"]])

@@ -20,10 +20,13 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="sterling.research")
     parser.add_argument("command",
                         choices=["verify", "parquet", "features", "analyze", "all",
-                                 "book", "evaluate", "notify-test"])
+                                 "book", "evaluate", "notify-test",
+                                 "experiment", "experiment-final"])
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
+    parser.add_argument("-n", "--batch", type=int, default=20,
+                        help="experiment: number of candidates to evaluate this run")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
@@ -65,6 +68,21 @@ def main(argv=None) -> int:
         from sterling.research import notify
         ok = notify.send("✅ <b>Sterling</b> — Telegram is wired up. You'll get the paper book here.")
         print("Telegram test:", "sent — check your phone" if ok else "failed (check .env creds)")
+    elif args.command == "experiment":
+        # one autonomous search cycle: evaluate a batch, update the leaderboard, ping progress
+        from sterling.research import experiment, notify
+        experiment.run_batch(n=args.batch)
+        rep = experiment.final_report()
+        print(json.dumps(rep, indent=2, default=str))
+        if not args.no_notify:
+            notify.send(notify.format_experiment(rep))
+    elif args.command == "experiment-final":
+        # the Aug-28 wrap-up: full honest verdict to Telegram
+        from sterling.research import experiment, notify
+        rep = experiment.final_report()
+        print(json.dumps(rep, indent=2, default=str))
+        if not args.no_notify:
+            notify.send("🏁 <b>Sterling — final results</b>\n" + notify.format_experiment(rep))
     return 0
 
 

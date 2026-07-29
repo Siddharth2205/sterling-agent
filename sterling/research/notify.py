@@ -69,3 +69,23 @@ def format_evaluation(result: dict) -> str:
         lines.append(f"• {b['rebalance_date']}: {b['book_return_pct']:+.2f}% "
                      f"({b['names']} names)")
     return "\n".join(lines)
+
+
+def format_experiment(report: dict, board=None) -> str:
+    """Telegram summary of the autonomous search: trials so far + honest hold-out verdict."""
+    if "error" in report:
+        return f"🔬 <b>Sterling search</b>\n{report['error']}"
+    lines = ["🔬 <b>Sterling — autonomous strategy search</b>",
+             f"Trials so far: <b>{report.get('trials')}</b>"]
+    hs, ht = report.get("holdout_sharpe"), report.get("holdout_t")
+    ha = report.get("holdout_alpha_pct_yr")
+    lines += [
+        f"Best (by development score) on the <b>untouched hold-out</b>:",
+        f"  • return/yr: <b>{ha}%</b>" if ha is not None else "  • return/yr: n/a",
+        f"  • Sharpe: <b>{hs}</b>   • t-stat: <b>{ht}</b>",
+        ("✅ <b>Honest deployable edge found</b>" if report.get("honest_deployable_edge")
+         else "❌ <b>No deployable edge yet</b> (needs Sharpe&gt;0.5 &amp; t&gt;2 on hold-out)"),
+        "",
+        "<i>Hold-out = data the search never selected on. With many trials, only t&gt;2 there counts.</i>",
+    ]
+    return "\n".join(lines)
