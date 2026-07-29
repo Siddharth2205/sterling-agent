@@ -6,12 +6,14 @@ simulation. Built to falsify its own edge before believing it, not to produce co
 signals.
 
 > **Honest status.** The original heuristic BUY/HOLD/SELL agent was retired — it had no
-> predictive edge at its trading horizon (see [DIAGNOSIS.md](DIAGNOSIS.md)). The rebuilt
-> gradient-boosted model, tested **survivorship-free over 25 years (1998–2026)**, has a
-> **real but thin** edge: a genuine ranking signal that, risk-managed and market-neutral,
-> earns ~5%/yr at a ~0.4 Sharpe with its worst drawdown roughly halved. That is **not
-> deployable retail alpha** — for real capital a broad low-cost index is the honest default —
-> but it is a clean, honestly-validated result. The old agent remains on `master`.
+> predictive edge (see [DIAGNOSIS.md](DIAGNOSIS.md)). The rebuilt gradient-boosted model,
+> tested **survivorship-free over 25 years (1998–2026)**, *appeared* to have a ~5%/yr
+> market-neutral edge — but a **tradeability stress test killed it**: that edge lived almost
+> entirely in **untradeable penny stocks** the model expected to bounce. Restricted to stocks
+> you could actually buy (≥$5, real volume), the edge falls to **≈0 (Sharpe −0.05, t=−0.14)**.
+> **No deployable edge — for real capital, a broad low-cost index is the answer.** The value
+> here is the *method*: a pipeline rigorous enough to prove its own edge was fake. Full story
+> in [FINDINGS.md](FINDINGS.md).
 
 ## What the honest testing found
 
@@ -21,8 +23,9 @@ signals.
 | Backtest de-biased | Removed a look-ahead leak (point-in-time fundamentals) and a NaN-bar bug; paused the live loop. |
 | Survivorship-free signal (25y) | **Real ranking skill**: monotonic score quintiles, out-of-sample IC positive in **all 5** time folds. |
 | Naive portfolio (top-N) | Concentration got crushed by crashes; a broad top-20% beats the index on *return* (t=2.06) but **not** risk-adjusted. |
-| Risk-managed market-neutral | **~+5%/yr, ~0.4 Sharpe, drawdown halved** — a genuine market-neutral alpha, but thin. |
-| Adding signals (breadth) | Reversal / low-vol / value all **lost** in 2010–26 → the edge is momentum-flavored and **regime-dependent**. |
+| Risk-managed market-neutral | *Appeared* to give ~+5%/yr at ~0.4 Sharpe (t=2.06). |
+| **Tradeability stress test** | **The edge was fake** — it lived in untradeable penny stocks. Filter to real, liquid names → alpha falls to **≈0 (Sharpe −0.05, t=−0.14)**. |
+| Adding signals (breadth) | Reversal / low-vol / value all **lost** in 2010–26 → no cheap way to add a real second edge. |
 
 **The point of the project is the method, not the strategy:** find a fake edge and kill it,
 find a real one and stress-test it until it's honest, and refuse to deploy on a result that

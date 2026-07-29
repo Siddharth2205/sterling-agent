@@ -66,18 +66,37 @@ is not a bug: those factors genuinely had a terrible decade. The uncomfortable i
 Real breadth (value + *quality* from fundamentals) is blocked by data cost, and history suggests
 it might not have helped much in this exact window anyway.
 
-## 6. Honest conclusion
+## 6. The tradeability stress test — the edge was an illusion
 
-- **We have one real, small, survivorship-free, out-of-sample market-neutral alpha (~0.4 Sharpe).**
-  Most attempts at this never produce a clean positive result; this one did.
-- It is **not deployable retail alpha** — the edge is thin, regime-dependent, and would be eroded
-  by costs and capacity at any serious scale, with none of a real fund's diversification across
-  hundreds of alphas.
-- **For real capital, a broad low-cost index is the honest default** — a conclusion *earned*
-  through testing, not assumed.
-- The lasting asset is the **method and the engine**: survivorship-free data, point-in-time
-  features, walk-forward validation, risk-managed construction, and the discipline to refuse to
-  deploy on a result that doesn't survive.
+Inspecting the *actual* top picks was the tell: the model's highest-conviction names were
+stocks **down 95–100%** (e.g. FFAI, −98%) — untradeable penny stocks it expected to bounce.
+The static `scalemarketcap` tag let former mid-caps that had collapsed stay in the universe.
+
+So we re-ran with a **point-in-time liquidity filter** — keep only rows priced ≥ $5 with
+≥ $1M average daily dollar volume (stocks you could actually trade):
+
+| | Full universe | Tradeable only (≥$5, ≥$1M/day) |
+|---|---|---|
+| Rows kept | 100% | **34%** (two-thirds was untradeable) |
+| Out-of-sample IC | +0.0115 | +0.0101 (ranking still faintly there) |
+| **Market-neutral alpha / yr** | **+5.3%** | **−0.5%** |
+| **Sharpe** | 0.43 | **−0.05** |
+| **Not luck? (t-stat)** | 2.06 ✅ | **−0.14 ❌** |
+
+**The entire market-neutral "edge" lived in untradeable micro-caps.** On stocks you could
+really buy, it is gone — statistically indistinguishable from zero, slightly negative. The
+tiny ranking correlation survives, but it converts to **no tradeable return.**
+
+## 7. Honest conclusion
+
+- After an honest tradeability screen, **there is no deployable edge.** The apparent
+  +5%/yr market-neutral alpha was an artifact of untradeable distressed penny stocks; on
+  real, liquid names the strategy returns ≈ 0.
+- **For real capital, a broad low-cost index is the answer** — now *proven*, not assumed.
+- The lasting asset is the **method and the engine**, and the discipline that produced this
+  conclusion: survivorship-free data, point-in-time features, walk-forward validation,
+  risk-managed construction, and — critically — **stress-testing a *positive* result until it
+  broke, instead of believing it.** Finding that your own edge is fake is the job working.
 
 ## Reproduce
 ```bash

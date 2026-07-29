@@ -40,6 +40,16 @@ def build_features(horizon: int = config.HORIZON) -> dict:
                                    hist_fund_fn=None, vix_by_date=vix_by_date,
                                    step=config.SAMPLE_STEP, warmup=config.WARMUP)
     lab = sv.add_labels(feat, prices, delisting, horizon=horizon)
+
+    # Tradeability screen (point-in-time): drop penny/illiquid rows — otherwise the model
+    # chases untradeable distressed micro-caps and manufactures a fake edge (see FINDINGS.md).
+    from sterling.research import tradeable
+    before = len(lab)
+    lab = tradeable.filter_tradeable(lab, prices=prices,
+                                     min_price=config.MIN_PRICE, min_dvol=config.MIN_DOLLAR_VOL)
+    lab["bench_fwd"] = lab.groupby("date")["fwd_return"].transform("mean")
+    lab["label"] = lab["fwd_return"] - lab["bench_fwd"]   # excess vs the *tradeable* universe
+    logger.info(f"tradeability filter: {before} -> {len(lab)} rows")
     lab.to_pickle(config.FEATURES_PKL)
 
     summary = {

@@ -24,5 +24,7 @@ MID_UP = ("4 - Mid", "5 - Large", "6 - Mega")   # market-cap tiers to include
 HORIZON = 63          # forward-return horizon in trading days (~1 quarter)
 SAMPLE_STEP = 5       # sample every N trading days per ticker
 WARMUP = 252          # bars needed before a ticker is eligible (1y of history)
+MIN_PRICE = 5.0             # tradeability: drop penny stocks (point-in-time)
+MIN_DOLLAR_VOL = 1_000_000  # tradeability: min 21d avg daily $ volume
 MIN_BARS = 250        # drop tickers with fewer usable bars
 N_FOLDS = 5           # walk-forward folds

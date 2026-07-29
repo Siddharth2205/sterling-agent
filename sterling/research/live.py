@@ -74,6 +74,11 @@ def current_cross_section(recent_days: int = 10) -> pd.DataFrame:
     for tk, df in prices.items():
         if len(df) < 252 or (gmax - df.index[-1].date()).days > recent_days:
             continue                                    # too short, or not currently trading
+        # Tradeability screen — only names you could actually buy (no penny/illiquid junk).
+        price = float(df["Close"].iloc[-1])
+        dvol = float((df["Close"] * df["Volume"]).tail(21).mean())
+        if price < config.MIN_PRICE or dvol < config.MIN_DOLLAR_VOL:
+            continue
         fr = F._price_feature_frame(df).iloc[-1]
         row = {"date": df.index[-1].date(), "ticker": tk}
         for c in F.PRICE_FEATURES:
