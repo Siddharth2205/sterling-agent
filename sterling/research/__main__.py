@@ -20,8 +20,10 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="sterling.research")
     parser.add_argument("command",
                         choices=["verify", "parquet", "features", "analyze", "all",
-                                 "book", "evaluate"])
+                                 "book", "evaluate", "notify-test"])
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--no-notify", action="store_true",
+                        help="skip the Telegram notification for book/evaluate")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
@@ -46,14 +48,23 @@ def main(argv=None) -> int:
         r = pipeline.run_all()
         print(json.dumps(r["walkforward"], indent=2, default=str))
     elif args.command == "book":
-        from sterling.research import live
+        from sterling.research import live, notify
         asof, book = live.generate_book()
         n = live.log_book(asof, book)
         print(f"Paper book for {asof}: {n} names, logged to {live.LEDGER.name}")
         print(book.head(15).to_string(index=False))
+        if not args.no_notify:
+            print("Telegram:", "sent" if notify.send(notify.format_book(asof, book)) else "skipped/failed")
     elif args.command == "evaluate":
-        from sterling.research import live
-        print(json.dumps(live.evaluate(), indent=2, default=str))
+        from sterling.research import live, notify
+        res = live.evaluate()
+        print(json.dumps(res, indent=2, default=str))
+        if not args.no_notify and "error" not in res:
+            print("Telegram:", "sent" if notify.send(notify.format_evaluation(res)) else "skipped/failed")
+    elif args.command == "notify-test":
+        from sterling.research import notify
+        ok = notify.send("✅ <b>Sterling</b> — Telegram is wired up. You'll get the paper book here.")
+        print("Telegram test:", "sent — check your phone" if ok else "failed (check .env creds)")
     return 0
 
 
