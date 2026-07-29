@@ -1,0 +1,27 @@
+{
+  "updated": "2026-07-29T18:42+00:00",
+  "trials": 2,
+  "edge_found": false,
+  "best": {
+    "holdout_alpha": 12.83,
+    "holdout_sharpe": 0.83,
+    "holdout_t": 1.77,
+    "plain": "buy the top 20% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
+  },
+  "candidates": [
+    {
+      "dev_sharpe": 0.43,
+      "holdout_sharpe": 0.83,
+      "holdout_alpha": 12.83,
+      "holdout_t": 1.77
+    },
+    {
+      "dev_sharpe": 0.0,
+      "holdout_sharpe": 0.03,
+      "holdout_alpha": 0.63,
+      "holdout_t": 0.07
+    }
+  ],
+  "holdout_since": "2022-01-01",
+  "deadline": "2026-08-28"
+}

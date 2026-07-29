@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sterling — Strategy Search Dashboard</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --surface:#ffffff; --ink:#1a1d24; --muted:#5b6472; --line:#e6e9ef;
+    --accent:#3b6ea5; --good:#1f9d55; --bad:#d64545; --warn:#c98a12;
+    --shadow:0 1px 3px rgba(20,25,35,.06),0 6px 24px rgba(20,25,35,.05);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0f1216; --surface:#171b21; --ink:#e8ebf0; --muted:#98a2b3; --line:#252b34;
+           --accent:#6ea8de; --good:#39c17a; --bad:#ef6b6b; --warn:#e2b23a;
+           --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 30px rgba(0,0,0,.35); }
+  }
+  :root[data-theme="dark"]{ --bg:#0f1216; --surface:#171b21; --ink:#e8ebf0; --muted:#98a2b3;
+    --line:#252b34; --accent:#6ea8de; --good:#39c17a; --bad:#ef6b6b; --warn:#e2b23a; }
+  :root[data-theme="light"]{ --bg:#f7f8fa; --surface:#ffffff; --ink:#1a1d24; --muted:#5b6472;
+    --line:#e6e9ef; --accent:#3b6ea5; --good:#1f9d55; --bad:#d64545; --warn:#c98a12; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 18px 60px;}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;justify-content:space-between;margin-bottom:6px}
+  h1{font-size:1.5rem;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:.9rem}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px;margin-top:18px}
+  /* verdict banner */
+  .verdict{display:flex;gap:14px;align-items:flex-start;border-left:5px solid var(--muted)}
+  .verdict.good{border-left-color:var(--good)} .verdict.bad{border-left-color:var(--bad)}
+  .verdict .big{font-size:1.15rem;font-weight:650;margin:0 0 4px}
+  .verdict .why{color:var(--muted);font-size:.95rem;margin:0}
+  .dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;margin-top:6px;background:var(--muted)}
+  .verdict.good .dot{background:var(--good)} .verdict.bad .dot{background:var(--bad)}
+  /* tiles */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:18px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 16px 14px;box-shadow:var(--shadow)}
+  .tile .label{color:var(--muted);font-size:.82rem;display:flex;align-items:center;gap:6px}
+  .tile .value{font-size:1.7rem;font-weight:700;margin-top:6px;letter-spacing:-.02em}
+  .tile .value.small{font-size:1.15rem}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.8rem;font-weight:650}
+  .pill.good{background:color-mix(in oklab,var(--good) 18%,transparent);color:var(--good)}
+  .pill.bad{background:color-mix(in oklab,var(--bad) 18%,transparent);color:var(--bad)}
+  /* info button */
+  .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    font-size:11px;font-weight:700;font-style:normal;cursor:help;position:relative;flex:0 0 16px;user-select:none}
+  .info:hover,.info:focus{color:var(--accent);border-color:var(--accent);outline:none}
+  .info .tip{position:absolute;top:130%;left:50%;transform:translateX(-50%);width:240px;
+    background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;font-size:.82rem;
+    font-weight:400;line-height:1.45;box-shadow:var(--shadow);opacity:0;visibility:hidden;
+    transition:opacity .12s;z-index:20;text-align:left}
+  .info:hover .tip,.info:focus .tip{opacity:1;visibility:visible}
+  .info .tip::after{content:"";position:absolute;bottom:100%;left:50%;transform:translateX(-50%);
+    border:6px solid transparent;border-bottom-color:var(--ink)}
+  h2{font-size:1.05rem;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+  .muted{color:var(--muted);font-size:.92rem;margin:.2rem 0 0}
+  /* scatter */
+  svg{width:100%;height:auto;display:block;overflow:visible}
+  .axline{stroke:var(--line);stroke-width:1}
+  .refline{stroke:var(--muted);stroke-dasharray:4 4;stroke-width:1;opacity:.6}
+  .axlabel{fill:var(--muted);font-size:11px}
+  .mark{stroke:var(--surface);stroke-width:1.5}
+  /* table */
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:.82rem}
+  td.num{font-variant-numeric:tabular-nums}
+  .toggle{cursor:pointer;color:var(--accent);background:none;border:none;font-size:.85rem}
+  footer{color:var(--muted);font-size:.82rem;margin-top:26px;text-align:center;line-height:1.6}
+  .empty{color:var(--muted);text-align:center;padding:30px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Sterling — Strategy Search</h1>
+      <div class="sub">A computer is trying trading strategies every day and testing them honestly. <span id="updated"></span></div>
+    </div>
+    <button class="toggle" id="theme">◐ theme</button>
+  </header>
+
+  <!-- VERDICT -->
+  <div class="card verdict" id="verdict">
+    <div class="dot"></div>
+    <div>
+      <p class="big" id="verdict-big">Loading…</p>
+      <p class="why" id="verdict-why"></p>
+    </div>
+  </div>
+
+  <!-- TILES -->
+  <div class="tiles" id="tiles"></div>
+
+  <!-- CHART -->
+  <div class="card">
+    <h2>Every strategy we tried
+      <span class="info" tabindex="0">i<span class="tip">Each dot is one trading strategy the computer tested. <b>Right</b> = it looked good while the computer was tuning it. <b>Up</b> = it actually worked on recent data it was never allowed to learn from (the fair test). We only trust dots in the <b>top-right</b>. Most fall short — which is exactly why we test this way.</span></span>
+    </h2>
+    <p class="muted">Looked good in practice → &nbsp;·&nbsp; Actually worked on the honest test ↑</p>
+    <div id="chart"></div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="card">
+    <h2>Best strategies so far
+      <span class="info" tabindex="0">i<span class="tip">The top strategies, ranked by how they looked during tuning. The column that matters is the <b>honest test</b> — how they did on data they never saw.</span></span>
+    </h2>
+    <div id="table"></div>
+  </div>
+
+  <footer>
+    Research, not financial advice. “Honest test” = a locked-away recent period the search was never allowed to tune on —
+    the only fair measure of whether a strategy really works. Campaign runs until <b id="deadline"></b>.
+  </footer>
+</div>
+
+<script id="embedded" type="application/json">{
+  "updated": "2026-07-29T18:39+00:00",
+  "trials": 2,
+  "edge_found": false,
+  "best": {
+    "holdout_alpha": 12.83,
+    "holdout_sharpe": 0.83,
+    "holdout_t": 1.77,
+    "plain": "buy the top 20% of names trading \u2265 $5M/day, price \u2265 $3, any sector"
+  },
+  "candidates": [
+    {
+      "dev_sharpe": 0.43,
+      "holdout_sharpe": 0.83,
+      "holdout_alpha": 12.83,
+      "holdout_t": 1.77
+    },
+    {
+      "dev_sharpe": 0.0,
+      "holdout_sharpe": 0.03,
+      "holdout_alpha": 0.63,
+      "holdout_t": 0.07
+    }
+  ],
+  "holdout_since": "2022-01-01",
+  "deadline": "2026-08-28"
+}</script>
+<script>
+const TIPS = {
+  trials:"How many different trading strategies the computer has tried so far. It keeps trying new ones every day and learns which directions look promising.",
+  ret:"The best yearly return any strategy achieved — measured ONLY on recent years the computer was never allowed to learn from. That's the fair test, not a rehearsal.",
+  sharpe:"“Bang for your buck” on risk: how much reward you get for how much the value bounces around. Below ~0.5 is basically noise; around 1 is genuinely good.",
+  tstat:"How sure we are it's real skill and not luck. Above 2 = probably real. Below 2 = could easily be a fluke, so we don't trust it.",
+  passed:"Did the best strategy actually beat the market on data it had never seen, with enough confidence to trust it? Green = yes. Red = not yet — which, honestly, is the expected answer.",
+  best:"The winning strategy in plain words — what it would actually buy."
+};
+function info(key){return `<span class="info" tabindex="0">i<span class="tip">${TIPS[key]}</span></span>`;}
+
+function load(){
+  return fetch('./dashboard_data.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json();})
+    .catch(()=>JSON.parse(document.getElementById('embedded').textContent));
+}
+
+function render(d){
+  document.getElementById('updated').textContent = d.updated ? '· updated '+d.updated.replace('T',' ')+' UTC' : '';
+  document.getElementById('deadline').textContent = d.deadline || '';
+  const cands=(d.candidates||[]).filter(c=>c.holdout_sharpe!=null);
+
+  // verdict
+  const v=document.getElementById('verdict');
+  const found=d.edge_found;
+  v.classList.add(found?'good':'bad');
+  document.getElementById('verdict-big').textContent = found
+    ? "A strategy passed the honest test — worth a closer look."
+    : "No reliable money-making strategy found yet.";
+  document.getElementById('verdict-why').textContent = found
+    ? "One candidate beat the market on data it had never seen, with real confidence. Dig in before trusting it with money."
+    : "And that's the honest, trustworthy answer. The search keeps trying — but it will only ever flag something real, never a lucky fluke.";
+
+  // tiles
+  const b=d.best||{};
+  const passPill = found?'<span class="pill good">✓ Yes</span>':'<span class="pill bad">Not yet</span>';
+  const tiles=[
+    {label:'Strategies tested',key:'trials',val:(d.trials??0).toLocaleString()},
+    {label:'Best return / year',key:'ret',val:b.holdout_alpha!=null?(b.holdout_alpha>0?'+':'')+b.holdout_alpha+'%':'—'},
+    {label:'Bang-for-risk',key:'sharpe',val:b.holdout_sharpe!=null?b.holdout_sharpe:'—'},
+    {label:'Is it real? (confidence)',key:'tstat',val:b.holdout_t!=null?b.holdout_t:'—'},
+    {label:'Passed honest test?',key:'passed',val:passPill,small:true},
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(t=>`
+    <div class="tile"><div class="label">${t.label} ${info(t.key)}</div>
+    <div class="value ${t.small?'small':''}">${t.val}</div></div>`).join('')
+    + (b.plain?`<div class="tile" style="grid-column:1/-1"><div class="label">Best strategy, in plain words ${info('best')}</div>
+       <div class="value small">${b.plain}</div></div>`:'');
+
+  // scatter
+  chart(cands);
+  // table
+  table(cands);
+}
+
+function chart(cands){
+  const el=document.getElementById('chart');
+  if(!cands.length){el.innerHTML='<div class="empty">Warming up — strategies will appear here as the search runs.</div>';return;}
+  const W=920,H=380,P=48;
+  const xs=cands.map(c=>c.dev_sharpe??0), ys=cands.map(c=>c.holdout_sharpe??0);
+  const xmin=Math.min(-.2,...xs), xmax=Math.max(1,...xs);
+  const ymin=Math.min(-.2,...ys), ymax=Math.max(1,...ys);
+  const X=v=>P+(v-xmin)/(xmax-xmin)*(W-2*P);
+  const Y=v=>H-P-(v-ymin)/(ymax-ymin)*(H-2*P);
+  const pass=c=>(c.holdout_t??0)>2 && (c.holdout_sharpe??0)>0.5;
+  // passing zone shading (top area where holdout>0.5)
+  const zoneY=Y(0.5);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="scatter of strategies">`;
+  s+=`<rect x="${P}" y="${P}" width="${W-2*P}" height="${Math.max(0,zoneY-P)}" fill="var(--good)" opacity="0.06"/>`;
+  s+=`<text x="${W-P}" y="${P+14}" text-anchor="end" class="axlabel" fill="var(--good)">trustworthy zone</text>`;
+  // axes
+  s+=`<line class="axline" x1="${P}" y1="${Y(0)}" x2="${W-P}" y2="${Y(0)}"/>`;
+  s+=`<line class="axline" x1="${X(0)}" y1="${P}" x2="${X(0)}" y2="${H-P}"/>`;
+  // reference y=x ("if it were real")
+  const lo=Math.max(xmin,ymin), hi=Math.min(xmax,ymax);
+  s+=`<line class="refline" x1="${X(lo)}" y1="${Y(lo)}" x2="${X(hi)}" y2="${Y(hi)}"/>`;
+  s+=`<text class="axlabel" x="${W/2}" y="${H-12}" text-anchor="middle">Looked good while tuning →</text>`;
+  s+=`<text class="axlabel" transform="translate(14,${H/2}) rotate(-90)" text-anchor="middle">Worked on the honest test ↑</text>`;
+  for(const c of cands){
+    const col=pass(c)?'var(--good)':'var(--accent)';
+    s+=`<circle class="mark" cx="${X(c.dev_sharpe??0)}" cy="${Y(c.holdout_sharpe??0)}" r="7" fill="${col}" opacity="${pass(c)?0.95:0.6}">`
+      +`<title>Return/yr ${c.holdout_alpha??'—'}%, bang-for-risk ${c.holdout_sharpe??'—'}, confidence ${c.holdout_t??'—'}</title></circle>`;
+  }
+  s+=`</svg>`;
+  el.innerHTML=s;
+}
+
+function table(cands){
+  const el=document.getElementById('table');
+  if(!cands.length){el.innerHTML='<div class="empty">No results yet.</div>';return;}
+  const top=[...cands].sort((a,b)=>(b.dev_sharpe??-9)-(a.dev_sharpe??-9)).slice(0,8);
+  el.innerHTML=`<table><thead><tr>
+    <th>#</th><th>Return / yr (honest test)</th><th>Bang-for-risk</th><th>Confidence (t)</th><th>Trust?</th>
+    </tr></thead><tbody>`+top.map((c,i)=>{
+      const ok=(c.holdout_t??0)>2&&(c.holdout_sharpe??0)>0.5;
+      return `<tr><td>${i+1}</td>
+        <td class="num">${c.holdout_alpha!=null?(c.holdout_alpha>0?'+':'')+c.holdout_alpha+'%':'—'}</td>
+        <td class="num">${c.holdout_sharpe??'—'}</td>
+        <td class="num">${c.holdout_t??'—'}</td>
+        <td>${ok?'<span class="pill good">✓</span>':'<span class="pill bad">no</span>'}</td></tr>`;
+    }).join('')+`</tbody></table>`;
+}
+
+// theme toggle
+document.getElementById('theme').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':cur==='light'?'':'dark';
+  if(next)document.documentElement.setAttribute('data-theme',next);
+  else document.documentElement.removeAttribute('data-theme');
+};
+
+load().then(render).catch(e=>{document.getElementById('verdict-big').textContent='Could not load data yet.';});
+</script>
+</body>
+</html>

@@ -21,7 +21,7 @@ def main(argv=None) -> int:
     parser.add_argument("command",
                         choices=["verify", "parquet", "features", "analyze", "all",
                                  "book", "evaluate", "notify-test",
-                                 "experiment", "experiment-final"])
+                                 "experiment", "experiment-final", "dashboard"])
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
@@ -76,6 +76,10 @@ def main(argv=None) -> int:
         print(json.dumps(rep, indent=2, default=str))
         if not args.no_notify:
             notify.send(notify.format_experiment(rep))
+    elif args.command == "dashboard":
+        from sterling.research import dashboard
+        d = dashboard.build_data()
+        print(f"dashboard: {d['trials']} trials -> docs/dashboard_data.json")
     elif args.command == "experiment-final":
         # the Aug-28 wrap-up: full honest verdict to Telegram
         from sterling.research import experiment, notify
