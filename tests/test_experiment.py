@@ -24,9 +24,9 @@ def test_leaderboard_survives_error_only_ledger(tmp_path, monkeypatch):
 
 def test_final_report_flags_no_edge_below_t2(tmp_path, monkeypatch):
     board = pd.DataFrame([
-        {"config": json.dumps({"x": 1}), "dev_sharpe": 0.6,
+        {"config": json.dumps({"x": 1}), "dev_sharpe": 0.6, "era": X.MATRIX_ERA,
          "holdout_sharpe": 0.83, "holdout_alpha": 12.0, "holdout_t": 1.77},
-        {"config": json.dumps({"x": 2}), "dev_sharpe": 0.2,
+        {"config": json.dumps({"x": 2}), "dev_sharpe": 0.2, "era": X.MATRIX_ERA,
          "holdout_sharpe": 0.1, "holdout_alpha": 1.0, "holdout_t": 0.3},
     ])
     p = tmp_path / "lb.csv"; board.to_csv(p, index=False)
@@ -35,3 +35,37 @@ def test_final_report_flags_no_edge_below_t2(tmp_path, monkeypatch):
     assert rep["trials"] == 2
     assert rep["holdout_t"] == 1.77            # leader chosen by dev_sharpe
     assert rep["honest_deployable_edge"] is False   # t<2 -> honest no
+
+
+def test_final_report_ignores_other_eras(tmp_path, monkeypatch):
+    # A stellar score from an old matrix era must not become the reported leader.
+    board = pd.DataFrame([
+        {"config": json.dumps({"x": 1}), "dev_sharpe": 9.9,
+         "holdout_sharpe": 9.9, "holdout_alpha": 99.0, "holdout_t": 9.9},   # no era col value
+        {"config": json.dumps({"x": 2}), "dev_sharpe": 0.4, "era": X.MATRIX_ERA,
+         "holdout_sharpe": 0.3, "holdout_alpha": 2.0, "holdout_t": 0.8},
+    ])
+    p = tmp_path / "lb.csv"; board.to_csv(p, index=False)
+    monkeypatch.setattr(X, "LEDGER", p)
+    rep = X.final_report()
+    assert rep["trials"] == 1 and rep["holdout_t"] == 0.8
+
+
+def test_enumerate_space_is_full_grid():
+    grid = X.enumerate_space()
+    assert len(grid) == 5832                       # 3^6 x 2 x 2 x 2 distinct configs
+    assert len({json.dumps(c, sort_keys=True) for c in grid}) == len(grid)
+    for c in grid:
+        for k, v in c.items():
+            assert v in X.SPACE[k]
+
+
+def test_untested_excludes_current_era_only():
+    cfg = X.enumerate_space()[0]
+    key = json.dumps(cfg, sort_keys=True)
+    # tested in the current era -> excluded
+    board = pd.DataFrame([{"config": key, "era": X.MATRIX_ERA}])
+    assert key not in {json.dumps(c, sort_keys=True) for c in X.untested_configs(board)}
+    # tested only in an old era -> still due for a re-test
+    board_old = pd.DataFrame([{"config": key, "era": "v1"}])
+    assert key in {json.dumps(c, sort_keys=True) for c in X.untested_configs(board_old)}

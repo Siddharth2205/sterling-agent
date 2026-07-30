@@ -27,7 +27,9 @@ def main(argv=None) -> int:
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
     parser.add_argument("-n", "--batch", type=int, default=20,
-                        help="experiment: number of candidates to evaluate this run")
+                        help="experiment: max candidates to evaluate this run")
+    parser.add_argument("--budget-min", type=float, default=None,
+                        help="experiment: stop starting new candidates after this many minutes")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
@@ -72,7 +74,7 @@ def main(argv=None) -> int:
     elif args.command == "experiment":
         # one autonomous search cycle: evaluate a batch, update the leaderboard, ping progress
         from sterling.research import experiment, notify
-        experiment.run_batch(n=args.batch)
+        experiment.run_batch(n=args.batch, time_budget_min=args.budget_min)
         rep = experiment.final_report()
         print(json.dumps(rep, indent=2, default=str))
         if not args.no_notify:

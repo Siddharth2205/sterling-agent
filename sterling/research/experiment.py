@@ -16,9 +16,11 @@ Nothing here promises a profitable strategy. It promises an *honest* answer.
 
 from __future__ import annotations
 
+import itertools
 import json
 import logging
 import random
+import time
 from datetime import date, datetime, timezone
 
 import numpy as np
@@ -32,6 +34,11 @@ logger = logging.getLogger(__name__)
 LEDGER = config.DATA / "experiment_leaderboard.csv"
 MATRIX = config.DATA / "experiment_matrix.pkl"
 HOLDOUT_START = date(2022, 1, 1)     # last ~4y locked away for the honest final test
+
+# Bump together with the workflow cache key whenever the feature matrix changes.
+# Rows from other eras stay on the leaderboard as history but are not comparable —
+# dedup, leaderboard and the final report all consider only the current era.
+MATRIX_ERA = "v3"
 
 # Search space — the knobs a candidate strategy can turn.
 SPACE = {
@@ -110,6 +117,27 @@ def build_matrix(force: bool = False) -> pd.DataFrame:
     return df
 
 
+def enumerate_space() -> list[dict]:
+    """Every distinct config in SPACE (duplicate knob values collapse) — 5,832 total."""
+    keys = list(SPACE)
+    uniq = [sorted(set(SPACE[k])) for k in keys]
+    return [dict(zip(keys, combo)) for combo in itertools.product(*uniq)]
+
+
+def _era_rows(board: pd.DataFrame) -> pd.DataFrame:
+    """Rows scored on the CURRENT feature matrix — the only comparable ones."""
+    if board is None or board.empty or "era" not in board.columns:
+        return pd.DataFrame()
+    return board[board["era"] == MATRIX_ERA]
+
+
+def untested_configs(board: pd.DataFrame | None) -> list[dict]:
+    """Grid configs not yet scored in the current era (other eras don't count —
+    their scores came from a different matrix and are not reproducible)."""
+    tested = set(_era_rows(board)["config"]) if board is not None and len(board) else set()
+    return [c for c in enumerate_space() if json.dumps(c, sort_keys=True) not in tested]
+
+
 def sample_config(rng: random.Random, leaders: pd.DataFrame | None = None) -> dict:
     """A new candidate: perturb a current leader half the time, else fully random."""
     if leaders is not None and len(leaders) and rng.random() < 0.5:
@@ -174,48 +202,61 @@ def evaluate(cfg: dict, df: pd.DataFrame) -> dict:
     }
 
 
-def run_batch(n: int = 20, seed: int | None = None) -> pd.DataFrame:
-    """Evaluate `n` new candidates and append them to the persistent leaderboard."""
+def run_batch(n: int = 20, seed: int | None = None,
+              time_budget_min: float | None = None) -> pd.DataFrame:
+    """Sweep untested grid configs (current era) and append results to the leaderboard.
+
+    Stops at `n` candidates, at `time_budget_min` minutes, or when the grid is
+    exhausted — whichever comes first. Saves after every candidate so a killed run
+    loses at most one evaluation.
+    """
     rng = random.Random(seed if seed is not None else datetime.now(timezone.utc).microsecond)
     df = build_matrix()
     board = pd.read_csv(LEDGER) if LEDGER.exists() else pd.DataFrame()
-    leaders = (board[board["dev_sharpe"].notna()].sort_values("dev_sharpe", ascending=False)
-               if "dev_sharpe" in board.columns else None)
-    if leaders is not None and leaders.empty:
-        leaders = None
+    todo = untested_configs(board)
+    if not todo:
+        logger.info(f"grid exhausted — all {len(enumerate_space())} configs scored in era {MATRIX_ERA}")
+        return board
+    rng.shuffle(todo)
+    total = len(enumerate_space())
+    logger.info(f"sweep era {MATRIX_ERA}: {total - len(todo)}/{total} done, "
+                f"{len(todo)} to go (batch limit n={n}, budget={time_budget_min} min)")
 
-    new = []
-    for i in range(n):
-        cfg = sample_config(rng, leaders)
+    t0 = time.monotonic()
+    for i, cfg in enumerate(todo[:n], 1):
+        if time_budget_min is not None and (time.monotonic() - t0) / 60 >= time_budget_min:
+            logger.info(f"time budget reached after {i - 1} candidates")
+            break
         try:
             row = evaluate(cfg, df)
         except Exception as e:  # noqa: BLE001 — a bad candidate must never kill the run
             row = {"config": json.dumps(cfg, sort_keys=True), "error": repr(e)[:160]}
         row["ts"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        new.append(row)
-        logger.info(f"[{i+1}/{n}] dev_sharpe={row.get('dev_sharpe')} holdout_sharpe={row.get('holdout_sharpe')}")
-
-    out = pd.concat([board, pd.DataFrame(new)], ignore_index=True)
-    out.to_csv(LEDGER, index=False)
-    return out
+        row["era"] = MATRIX_ERA
+        board = pd.concat([board, pd.DataFrame([row])], ignore_index=True)
+        board.to_csv(LEDGER, index=False)
+        logger.info(f"[{i}/{min(n, len(todo))}] dev_sharpe={row.get('dev_sharpe')} "
+                    f"holdout_sharpe={row.get('holdout_sharpe')}")
+    return board
 
 
 def leaderboard(top: int = 10) -> pd.DataFrame:
     if not LEDGER.exists():
         return pd.DataFrame()
-    b = pd.read_csv(LEDGER)
-    if "dev_sharpe" not in b.columns:
+    b = _era_rows(pd.read_csv(LEDGER))
+    if b.empty or "dev_sharpe" not in b.columns:
         return pd.DataFrame()
     return b[b["dev_sharpe"].notna()].sort_values("dev_sharpe", ascending=False).head(top)
 
 
 def final_report() -> dict:
     """Honest verdict: pick the leader by DEVELOPMENT score, then read its HOLD-OUT number.
-    The hold-out is the only estimate that isn't contaminated by the search itself."""
+    The hold-out is the only estimate that isn't contaminated by the search itself.
+    Only current-era rows count — older eras were scored on a different matrix."""
     if not LEDGER.exists():
         return {"error": "no experiments yet"}
-    b = pd.read_csv(LEDGER)
-    valid = b[b.get("dev_sharpe").notna()] if "dev_sharpe" in b else pd.DataFrame()
+    b = _era_rows(pd.read_csv(LEDGER))
+    valid = b[b["dev_sharpe"].notna()] if "dev_sharpe" in b.columns else pd.DataFrame()
     n_trials = len(b)
     if valid.empty:
         return {"trials": n_trials, "verdict": "no valid candidates yet"}

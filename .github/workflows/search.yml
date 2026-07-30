@@ -1,17 +1,18 @@
 name: Sterling Autonomous Strategy Search
 
-# Runs the honest strategy search daily until ~Aug 28, then sends a final Telegram report.
-# First run builds the survivorship-free matrix from the Sharadar bulk (~40 min) and caches
-# it; later runs restore the cache and just search. The leaderboard is committed back to the
-# repo so it persists and you can watch it grow.
+# Sweeps the FULL 5,832-config strategy grid in time-budgeted batches every 6 hours
+# until the grid is exhausted (or Aug 28, whichever first), then sends a final Telegram
+# report. First run builds the survivorship-free matrix from the Sharadar bulk + SEC
+# EDGAR fundamentals and caches it; later runs restore the cache and just sweep. The
+# leaderboard is committed back after every run so nothing is ever lost.
 #
 # Required repo Secrets (Settings → Secrets and variables → Actions):
 #   NASDAQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 on:
   schedule:
-    - cron: '0 7 * * *'      # daily 07:00 UTC
-  workflow_dispatch:          # manual "Run workflow" button
+    - cron: '0 1,7,13,19 * * *'   # every 6h — full-grid sweep (public repo, free minutes)
+  workflow_dispatch:              # manual "Run workflow" button
 
 permissions:
   contents: write             # to commit the leaderboard back
@@ -58,8 +59,8 @@ jobs:
           # net issuance) — forces a one-time rebuild
           key: sterling-matrix-v3
 
-      - name: Run one search cycle (builds matrix on first run) + Telegram progress
-        run: python -m sterling.research experiment -n 15 -v
+      - name: Run one sweep cycle (builds matrix on first run) + Telegram progress
+        run: python -m sterling.research experiment -n 500 --budget-min 240 -v
 
       - name: Refresh the paper book (market-neutral picks)
         if: ${{ always() }}

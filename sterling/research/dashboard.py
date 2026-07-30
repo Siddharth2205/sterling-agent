@@ -14,7 +14,7 @@ from datetime import datetime, timezone, date
 import pandas as pd
 
 from sterling.research import config
-from sterling.research.experiment import LEDGER, final_report, HOLDOUT_START
+from sterling.research.experiment import LEDGER, final_report, HOLDOUT_START, _era_rows
 from sterling.research.live import LEDGER as BOOK_LEDGER
 
 OUT = config.ROOT / "docs" / "dashboard_data.json"
@@ -58,7 +58,7 @@ def _book_picks(n: int = 16) -> dict:
 
 
 def build_data() -> dict:
-    board = pd.read_csv(LEDGER) if LEDGER.exists() else pd.DataFrame()
+    board = _era_rows(pd.read_csv(LEDGER)) if LEDGER.exists() else pd.DataFrame()
     valid = board[board["dev_sharpe"].notna()].copy() if "dev_sharpe" in board.columns else pd.DataFrame()
     rep = final_report()
 
