@@ -109,6 +109,40 @@ class TestRecords:
         recs = edgar.records_for_cik(facts)
         assert all(r["net_income_ttm"] is None for r in recs)
 
+    def test_factor_metrics(self):
+        rows = []
+        for y in (2019, 2020):
+            rows += _year_of_quarters("net_income", y, [10, 10, 10, 10 + (y - 2019) * 8])
+            rows += _year_of_quarters("revenue", y, [100, 100, 100, 100])
+            rows += _year_of_quarters("gross_profit", y, [40, 40, 40, 40])
+            for qe in (f"{y}-03-31", f"{y}-06-30", f"{y}-09-30", f"{y}-12-31"):
+                filed = (pd.Timestamp(qe) + pd.Timedelta(days=40)).date().isoformat()
+                rows.append(_inst("assets", qe, 800 + (y - 2019) * 80, filed))
+                rows.append(_inst("shares", qe, 50 - (y - 2019) * 2, filed))
+        recs = edgar.records_for_cik(pd.DataFrame(rows))
+        r = [x for x in recs if x["available_from"] == "2021-02-15"][0]
+        from sterling.research.fundamentals import fundamentals_as_of
+        f = fundamentals_as_of([r], dt.date(2021, 3, 1), price=20.0)
+        assert f["gross_profitability"] == pytest.approx(160 / 880)
+        assert f["asset_growth"] == pytest.approx(80 / 800)
+        assert f["net_issuance"] == pytest.approx(-2 / 50)      # buyback
+        assert f["margin_trend"] == pytest.approx(48 / 400 - 40 / 400)
+
+    def test_gross_profit_falls_back_to_revenue_minus_cost(self):
+        rows = (_year_of_quarters("net_income", 2020, [10, 10, 10, 10])
+                + _year_of_quarters("revenue", 2020, [100, 100, 100, 100])
+                + _year_of_quarters("cost_rev", 2020, [60, 60, 60, 60]))
+        recs = edgar.records_for_cik(pd.DataFrame(rows))
+        r = [x for x in recs if x["available_from"] == "2021-02-15"][0]
+        assert r["gross_profit_ttm"] == 160                     # 400 − 240
+
+    def test_stale_balance_sheet_is_not_used(self):
+        # Last balance sheet is >400 days old at the anchor quarter → treated missing.
+        rows = _year_of_quarters("net_income", 2021, [10, 10, 10, 10])
+        rows.append(_inst("equity", "2019-12-31", 400, "2020-02-15"))
+        recs = edgar.records_for_cik(pd.DataFrame(rows))
+        assert all(r["total_equity"] is None for r in recs)
+
     def test_bank_no_capex_fcf_is_ocf(self):
         facts = self._facts()
         facts = facts[facts["metric"] != "capex"]            # bank: no capex tag at all

@@ -59,6 +59,8 @@ TAG_MAP: dict[str, list[str]] = {
         "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
     ],
     "capex": ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"],
+    "gross_profit": ["GrossProfit"],
+    "cost_rev": ["CostOfRevenue", "CostOfGoodsAndServicesSold", "CostOfGoodsSold"],
     "equity": [
         "StockholdersEquity",
         "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
@@ -67,9 +69,10 @@ TAG_MAP: dict[str, list[str]] = {
         "LongTermDebt", "LongTermDebtNoncurrent", "LongTermDebtAndCapitalLeaseObligations",
         "DebtLongtermAndShorttermCombinedAmount",
     ],
+    "assets": ["Assets"],
 }
-FLOW_METRICS = ("revenue", "net_income", "ocf", "capex")
-INSTANT_METRICS = ("equity", "debt")
+FLOW_METRICS = ("revenue", "net_income", "ocf", "capex", "gross_profit", "cost_rev")
+INSTANT_METRICS = ("equity", "debt", "assets")
 # Share count lives in the `dei` namespace (unit "shares"), with a us-gaap fallback.
 SHARES_TAGS = [("dei", "EntityCommonStockSharesOutstanding"),
                ("us-gaap", "CommonStockSharesOutstanding")]
@@ -313,9 +316,12 @@ def records_for_cik(facts: pd.DataFrame) -> list[dict]:
     if anchor.empty:
         return []
 
-    def instant_asof(m: str, qend: pd.Timestamp):
+    def instant_asof(m: str, qend: pd.Timestamp, max_stale_days: int = 400):
+        """Latest balance-sheet value at/just before `qend` — but never one so stale
+        (> ~a year) that it no longer describes the company."""
         s = instants[m]
-        s = s[s["end"] <= qend + timedelta(days=5)]
+        s = s[(s["end"] <= qend + timedelta(days=5))
+              & (s["end"] >= qend - timedelta(days=max_stale_days))]
         if s.empty:
             return None, None
         r = s.iloc[-1]
@@ -338,10 +344,24 @@ def records_for_cik(facts: pd.DataFrame) -> list[dict]:
             filed_dates.append(got[1])
             return got[0]
 
+        def take_ttm_prior(m: str):
+            """TTM ending 4 quarters earlier — already public by this TTM's filing."""
+            qs = flows[m]
+            j = qs.index[qs["end"] == qend]
+            if len(j) == 0 or int(j[0]) < 7:
+                return None
+            got = _ttm(qs, int(j[0]) - 4)
+            return got[0] if got is not None else None
+
         ni = take_ttm("net_income")
         revenue = take_ttm("revenue")
         ocf = take_ttm("ocf")
         capex = take_ttm("capex")
+        gp = take_ttm("gross_profit")
+        if gp is None:
+            cost = take_ttm("cost_rev")
+            if revenue is not None and cost is not None:
+                gp = revenue - cost
         # No capex facts at all (banks/insurers) → FCF ≈ OCF; capex merely missing
         # this quarter → unknown, don't fake it.
         if ocf is None:
@@ -351,28 +371,31 @@ def records_for_cik(facts: pd.DataFrame) -> list[dict]:
         else:
             fcf = ocf - capex
 
-        rev_prior = None
-        j = rev.index[rev["end"] == qend]
-        if len(j) and int(j[0]) >= 7:
-            got = _ttm(rev, int(j[0]) - 4)
-            if got is not None:
-                rev_prior = got[0]     # already public by the current TTM's filing
+        rev_prior = take_ttm_prior("revenue")
+        ni_prior = take_ttm_prior("net_income")
 
         vals = {}
-        for m, key in (("equity", "total_equity"), ("debt", "total_debt"), ("shares", "shares")):
+        for m, key in (("equity", "total_equity"), ("debt", "total_debt"),
+                       ("shares", "shares"), ("assets", "total_assets")):
             v, fd = instant_asof(m, qend)
             vals[key] = v
             if fd is not None:
                 filed_dates.append(fd)
+        # Year-ago balance/share levels: filed long before this record, so they add
+        # nothing to available_from.
+        assets_prior, _ = instant_asof("assets", qend - timedelta(days=365))
+        shares_prior, _ = instant_asof("shares", qend - timedelta(days=365))
 
         if ni is None and revenue is None and vals["total_equity"] is None:
             continue
         records.append({
             "available_from": max(filed_dates).date().isoformat(),
             "revenue_ttm": revenue, "revenue_ttm_prior": rev_prior,
-            "net_income_ttm": ni, "fcf_ttm": fcf,
+            "net_income_ttm": ni, "net_income_ttm_prior": ni_prior,
+            "gross_profit_ttm": gp, "fcf_ttm": fcf,
             "total_equity": vals["total_equity"], "total_debt": vals["total_debt"],
-            "shares": vals["shares"],
+            "total_assets": vals["total_assets"], "total_assets_prior": assets_prior,
+            "shares": vals["shares"], "shares_prior": shares_prior,
         })
     records.sort(key=lambda r: r["available_from"])
     return records

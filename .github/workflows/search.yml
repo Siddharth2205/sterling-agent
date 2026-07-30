@@ -54,8 +54,9 @@ jobs:
             data/edgar/edgar_facts.parquet
             data/survivorship_full_features.pkl
             data/experiment_matrix.pkl
-          # v2: matrix now includes SEC EDGAR fundamentals — forces a one-time rebuild
-          key: sterling-matrix-v2
+          # v3: + factor features (gross profitability, asset growth, margin trend,
+          # net issuance) — forces a one-time rebuild
+          key: sterling-matrix-v3
 
       - name: Run one search cycle (builds matrix on first run) + Telegram progress
         run: python -m sterling.research experiment -n 15 -v

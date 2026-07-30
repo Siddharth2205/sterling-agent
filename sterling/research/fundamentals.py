@@ -40,7 +40,8 @@ def fundamentals_as_of(records: list[dict], on_date, price: Optional[float]) -> 
     out: dict = {}
     # Records may carry the final metrics directly (the Sharadar connector does);
     # take those as-is, then derive anything still missing from raw components.
-    for k in ("pe", "revenue_growth", "debt_to_equity", "roe", "fcf_yield_pct"):
+    for k in ("pe", "revenue_growth", "debt_to_equity", "roe", "fcf_yield_pct",
+              "gross_profitability", "asset_growth", "margin_trend", "net_issuance"):
         if chosen.get(k) is not None:
             out[k] = chosen[k]
 
@@ -67,5 +68,23 @@ def fundamentals_as_of(records: list[dict], on_date, price: Optional[float]) -> 
         mkt_cap = price * shares
         if mkt_cap > 0:
             out["fcf_yield_pct"] = fcf / mkt_cap * 100
+
+    # ── classic factor metrics (Novy-Marx quality, asset growth, issuance) ──
+    gp, assets = chosen.get("gross_profit_ttm"), chosen.get("total_assets")
+    if gp is not None and assets and assets > 0:
+        out["gross_profitability"] = gp / assets
+
+    assets_prior = chosen.get("total_assets_prior")
+    if assets is not None and assets_prior and assets_prior > 0:
+        out["asset_growth"] = (assets - assets_prior) / assets_prior
+
+    ni_prior = chosen.get("net_income_ttm_prior")
+    if (ni is not None and rev and rev > 0
+            and ni_prior is not None and rev_prior and rev_prior > 0):
+        out["margin_trend"] = ni / rev - ni_prior / rev_prior
+
+    shares_prior = chosen.get("shares_prior")
+    if shares is not None and shares_prior and shares_prior > 0:
+        out["net_issuance"] = (shares - shares_prior) / shares_prior
 
     return out

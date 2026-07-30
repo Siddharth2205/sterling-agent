@@ -27,7 +27,8 @@ PRICE_FEATURES = [
     "vol_21", "vol_63", "rsi_14", "macd_hist_norm",
     "sma50_ratio", "sma200_ratio", "bb_pctb", "vol_ratio", "high_252_prox",
 ]
-FUND_FEATURES = ["pe", "revenue_growth", "debt_to_equity", "roe", "fcf_yield_pct"]
+FUND_FEATURES = ["pe", "revenue_growth", "debt_to_equity", "roe", "fcf_yield_pct",
+                 "gross_profitability", "asset_growth", "margin_trend", "net_issuance"]
 MACRO_FEATURES = ["vix", "mkt_ret_63", "mkt_vol_21"]
 ALL_FEATURES = PRICE_FEATURES + FUND_FEATURES + MACRO_FEATURES
 
