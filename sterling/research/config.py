@@ -12,8 +12,17 @@ BULK = DATA / "sharadar_bulk"          # raw Sharadar bulk files (gitignored)
 # Raw CSV (as downloaded) and the Parquet we convert them to (queried via DuckDB).
 STOCKS_CSV = BULK / "stocks_10Y.csv"
 STOCKS_PARQUET = BULK / "stocks.parquet"
+STOCKS_FULL_PARQUET = BULK / "stocks_full.parquet"
 TICKERS_CSV = BULK / "tickers_full.csv"
 TICKERS_PARQUET = BULK / "tickers.parquet"
+
+
+def stocks_parquet() -> Path:
+    """The price parquet to read: the standard 10Y one if present, else the
+    full-history one (CI's bootstrap builds only that)."""
+    if STOCKS_PARQUET.exists() or not STOCKS_FULL_PARQUET.exists():
+        return STOCKS_PARQUET
+    return STOCKS_FULL_PARQUET
 
 # Derived artifacts.
 FEATURES_PKL = DATA / "survivorship_features.pkl"

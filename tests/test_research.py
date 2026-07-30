@@ -29,6 +29,21 @@ class TestUniverse:
         assert universe.market_of("ABX.V") == "CA"
 
 
+class TestConfig:
+    def test_stocks_parquet_falls_back_to_full_history(self, tmp_path, monkeypatch):
+        # CI's bootstrap builds only stocks_full.parquet — separate processes (the
+        # paper-book step) must find it when the standard 10Y parquet is absent.
+        from sterling.research import config
+        std, full = tmp_path / "stocks.parquet", tmp_path / "stocks_full.parquet"
+        monkeypatch.setattr(config, "STOCKS_PARQUET", std)
+        monkeypatch.setattr(config, "STOCKS_FULL_PARQUET", full)
+        assert config.stocks_parquet() == std          # neither exists -> default
+        full.touch()
+        assert config.stocks_parquet() == full         # only full exists -> fallback
+        std.touch()
+        assert config.stocks_parquet() == std          # standard wins when present
+
+
 class TestDatasetCoverage:
     def test_coverage_report(self):
         prices = {"AAA": _prices(500), "BBB.TO": _prices(300, seed=1)}

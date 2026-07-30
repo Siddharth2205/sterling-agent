@@ -85,7 +85,7 @@ def load_prices(universe: Iterable[str], parquet: Optional[Path] = None,
     lighter than a chunked CSV read, and the point-in-time series for delisted names end
     naturally at their last trading day.
     """
-    parquet = parquet or config.STOCKS_PARQUET
+    parquet = parquet or config.stocks_parquet()
     if not parquet.exists():
         csv_to_parquet(config.STOCKS_CSV, parquet)
     uni = list(dict.fromkeys(universe))
