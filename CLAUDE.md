@@ -1,5 +1,9 @@
 # Sterling — Claude Code Context
 
+> **New here? Read [HANDOFF.md](HANDOFF.md) first** — current state, the honest verdict
+> (no tradeable edge; the wall is data/market, not code), what's live (daily cloud search +
+> dashboard + Telegram), and the non-negotiable discipline. Then [FINDINGS.md](FINDINGS.md).
+
 ## What This Is (current direction)
 An **evidence-based equity research pipeline**. Given a broad, **survivorship-free** US
 universe (Sharadar bulk data, including delisted companies), it engineers point-in-time
