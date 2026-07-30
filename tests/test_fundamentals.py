@@ -24,6 +24,15 @@ class TestFundamentalsAsOf:
         recs = [_rec("2023-03-31", eps_ttm=-1.5)]
         assert fundamentals_as_of(recs, dt.date(2023,6,1), 50.0)["pe"] < 0
 
+    def test_precomputed_metrics_pass_through(self):
+        # The Sharadar connector emits final metrics, not raw components — they must
+        # survive the as-of selection instead of silently becoming NaN.
+        recs = [{"available_from": "2023-03-31", "pe": 12.0, "revenue_growth": 0.15,
+                 "debt_to_equity": 0.8, "roe": 0.22, "fcf_yield_pct": 5.0}]
+        f = fundamentals_as_of(recs, dt.date(2023, 6, 1), 40.0)
+        assert f == {"pe": 12.0, "revenue_growth": 0.15, "debt_to_equity": 0.8,
+                     "roe": 0.22, "fcf_yield_pct": 5.0}
+
     def test_derived_metrics(self):
         recs = [_rec("2023-03-31", eps_ttm=4.0, revenue_ttm=120.0, revenue_ttm_prior=100.0,
                      net_income_ttm=40.0, total_equity=400.0, total_debt=200.0,

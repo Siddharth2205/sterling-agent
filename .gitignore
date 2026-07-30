@@ -21,6 +21,7 @@ build/
 
 # ── Research pipeline: large & generated data (never commit) ──
 data/sharadar_bulk/
+data/edgar/
 data/sharadar_cache/
 data/research_cache/
 data/*.pkl

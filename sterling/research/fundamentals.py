@@ -38,6 +38,12 @@ def fundamentals_as_of(records: list[dict], on_date, price: Optional[float]) -> 
         return {}
 
     out: dict = {}
+    # Records may carry the final metrics directly (the Sharadar connector does);
+    # take those as-is, then derive anything still missing from raw components.
+    for k in ("pe", "revenue_growth", "debt_to_equity", "roe", "fcf_yield_pct"):
+        if chosen.get(k) is not None:
+            out[k] = chosen[k]
+
     eps = chosen.get("eps_ttm")
     if eps is None and chosen.get("net_income_ttm") and chosen.get("shares"):
         eps = chosen["net_income_ttm"] / chosen["shares"]

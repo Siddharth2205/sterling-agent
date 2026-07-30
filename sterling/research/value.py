@@ -33,15 +33,19 @@ def build_value_parquet(csv: Optional[Path] = None, parquet: Optional[Path] = No
 def attach_value(panel: pd.DataFrame, parquet: Optional[Path] = None) -> pd.DataFrame:
     """Attach as-of P/E, P/B, P/S to each (date, ticker) via a DuckDB ASOF join."""
     parquet = parquet or config.BULK / "daily_value.parquet"
+    if not parquet.exists():
+        raise FileNotFoundError(f"{parquet} not found — run build_value_parquet() first")
     keys = panel[["date", "ticker"]].drop_duplicates()
     con = duckdb.connect()
-    con.register("p", keys)
-    res = con.execute(
-        f"SELECT p.date, p.ticker, v.pe, v.pb, v.ps "
-        f"FROM p ASOF LEFT JOIN read_parquet('{parquet.as_posix()}') v "
-        f"ON p.ticker = v.ticker AND p.date >= v.date"
-    ).df()
-    con.close()
+    try:
+        con.register("p", keys)
+        res = con.execute(
+            f"SELECT p.date, p.ticker, v.pe, v.pb, v.ps "
+            f"FROM p ASOF LEFT JOIN read_parquet('{parquet.as_posix()}') v "
+            f"ON p.ticker = v.ticker AND p.date >= v.date"
+        ).df()
+    finally:
+        con.close()
     # DuckDB returns date as datetime64; match the panel's plain-date dtype for the merge.
     res["date"] = pd.to_datetime(res["date"]).dt.date
     return panel.merge(res, on=["date", "ticker"], how="left")

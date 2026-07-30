@@ -19,6 +19,7 @@ branch for reference; branch `research/survivorship-ml` keeps only the research 
 sterling/research/
   config.py        — central paths + params (no hard-coded paths)
   sharadar.py      — Sharadar REST + BULK download connector (survivorship-free source)
+  edgar.py         — SEC EDGAR fundamentals (free, point-in-time, incl. delisted filers)
   store.py         — DuckDB + Parquet data layer (query big data without loading it all)
   survivorship.py  — universe selection, delisting map, delisting-aware labels
   universe.py      — legacy free-data universe list (yfinance path)
@@ -41,6 +42,7 @@ python check_api_key.py                 # standalone Sharadar key health check
 
 python -m sterling.research verify      # check API key responds
 python -m sterling.research parquet     # convert bulk CSVs -> Parquet (one-time)
+python -m sterling.research edgar       # SEC companyfacts bulk -> fundamentals Parquet (one-time)
 python -m sterling.research features    # build survivorship-free feature matrix
 python -m sterling.research analyze     # walk-forward + portfolio sim
 python -m sterling.research all         # features + analyze
@@ -52,6 +54,9 @@ pytest -v
 - Requires `NASDAQ_API_KEY` in `.env` (Sharadar). Never hard-code or print keys.
 - Bulk files in `data/sharadar_bulk/` (**gitignored**): `stocks_10Y.csv` -> `stocks.parquet`
   (~400 MB), `tickers_full.csv` -> `tickers.parquet`.
+- Fundamentals in `data/edgar/` (**gitignored**): SEC `companyfacts.zip` (~1.4 GB) ->
+  `edgar_facts.parquet` (~42 MB). Free, no key; requests need a User-Agent header.
+  `pipeline.build_features` uses them automatically when the parquet exists.
 - Derived artifacts (`data/*.pkl`, `data/*.json`) are gitignored.
 
 ## Data-layer principle

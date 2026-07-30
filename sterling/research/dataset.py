@@ -9,7 +9,7 @@ backtest stats).
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -49,7 +49,7 @@ def download_one(ticker: str, years: int = 10, force: bool = False) -> Optional[
             pass  # fall through to re-download
 
     import yfinance as yf
-    end = datetime.utcnow()
+    end = datetime.now(timezone.utc)
     start = end - timedelta(days=years * 365 + 10)
     try:
         df = yf.Ticker(ticker).history(

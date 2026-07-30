@@ -35,16 +35,18 @@ def csv_to_parquet(csv_path: Path, parquet_path: Path, force: bool = False) -> P
     tmp = config.DATA / "duckdb_tmp"
     tmp.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
-    # Bound memory and spill to disk so multi-GB CSVs convert without OOM.
-    con.execute("SET preserve_insertion_order=false")
-    con.execute("SET memory_limit='3GB'")
-    con.execute(f"SET temp_directory='{tmp.as_posix()}'")
-    con.execute(
-        f"COPY (SELECT * FROM read_csv_auto('{csv_path.as_posix()}', "
-        f"SAMPLE_SIZE=200000, IGNORE_ERRORS=true)) "
-        f"TO '{parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)"
-    )
-    con.close()
+    try:
+        # Bound memory and spill to disk so multi-GB CSVs convert without OOM.
+        con.execute("SET preserve_insertion_order=false")
+        con.execute("SET memory_limit='3GB'")
+        con.execute(f"SET temp_directory='{tmp.as_posix()}'")
+        con.execute(
+            f"COPY (SELECT * FROM read_csv_auto('{csv_path.as_posix()}', "
+            f"SAMPLE_SIZE=200000, IGNORE_ERRORS=true)) "
+            f"TO '{parquet_path.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)"
+        )
+    finally:
+        con.close()
     logger.info(f"  wrote {parquet_path.name} "
                 f"({parquet_path.stat().st_size / 1e6:.0f} MB, from {csv_path.stat().st_size / 1e6:.0f} MB CSV)")
     return parquet_path
@@ -62,11 +64,13 @@ def load_tickers(parquet: Optional[Path] = None) -> pd.DataFrame:
     if not parquet.exists():
         csv_to_parquet(config.TICKERS_CSV, parquet)
     con = duckdb.connect()
-    df = con.execute(
-        f"SELECT * FROM read_parquet('{parquet.as_posix()}') "
-        f"WHERE category LIKE '%Common Stock%'"
-    ).df()
-    con.close()
+    try:
+        df = con.execute(
+            f"SELECT * FROM read_parquet('{parquet.as_posix()}') "
+            f"WHERE category LIKE '%Common Stock%'"
+        ).df()
+    finally:
+        con.close()
     for c in ("firstpricedate", "lastpricedate"):
         if c in df.columns:
             df[c] = pd.to_datetime(df[c], errors="coerce")
@@ -95,25 +99,27 @@ def load_prices(universe: Iterable[str], parquet: Optional[Path] = None,
 
     out: dict[str, pd.DataFrame] = {}
     batch = 800  # bound peak memory over full (multi-decade) history
-    for i in range(0, len(uni), batch):
-        uni_df = pd.DataFrame({"ticker": uni[i:i + batch]})
-        con.register("uni", uni_df)
-        rows = con.execute(
-            f"SELECT s.ticker, s.date, s.open, s.high, s.low, s.closeadj, s.volume "
-            f"FROM read_parquet('{parquet.as_posix()}') s JOIN uni USING (ticker) "
-            f"WHERE s.closeadj IS NOT NULL ORDER BY s.ticker, s.date"
-        ).df()
-        con.unregister("uni")
-        for tk, g in rows.groupby("ticker", sort=False):
-            idx = pd.DatetimeIndex(pd.to_datetime(g["date"]).dt.tz_localize(None).dt.normalize())
-            df = pd.DataFrame({
-                "Open": g["open"].to_numpy(), "High": g["high"].to_numpy(),
-                "Low": g["low"].to_numpy(), "Close": g["closeadj"].to_numpy(),
-                "Volume": g["volume"].to_numpy(),
-            }, index=idx)
-            if len(df) >= min_bars:
-                out[tk] = df
-    con.close()
+    try:
+        for i in range(0, len(uni), batch):
+            uni_df = pd.DataFrame({"ticker": uni[i:i + batch]})
+            con.register("uni", uni_df)
+            rows = con.execute(
+                f"SELECT s.ticker, s.date, s.open, s.high, s.low, s.closeadj, s.volume "
+                f"FROM read_parquet('{parquet.as_posix()}') s JOIN uni USING (ticker) "
+                f"WHERE s.closeadj IS NOT NULL ORDER BY s.ticker, s.date"
+            ).df()
+            con.unregister("uni")
+            for tk, g in rows.groupby("ticker", sort=False):
+                idx = pd.DatetimeIndex(pd.to_datetime(g["date"]).dt.tz_localize(None).dt.normalize())
+                df = pd.DataFrame({
+                    "Open": g["open"].to_numpy(), "High": g["high"].to_numpy(),
+                    "Low": g["low"].to_numpy(), "Close": g["closeadj"].to_numpy(),
+                    "Volume": g["volume"].to_numpy(),
+                }, index=idx)
+                if len(df) >= min_bars:
+                    out[tk] = df
+    finally:
+        con.close()
     return out
 
 
@@ -122,8 +128,11 @@ def download_bulk(table: str, years: str = "full", dest=None):
     cloud bootstrap. Reads the key from env; follows the redirect to the file."""
     import io, os, zipfile, requests
     from dotenv import dotenv_values
-    key = (dotenv_values(".env").get("NASDAQ_API_KEY") or dotenv_values(".env").get("SHARADAR_API_KEY")
+    env = dotenv_values(config.ROOT / ".env")
+    key = (env.get("NASDAQ_API_KEY") or env.get("SHARADAR_API_KEY")
            or os.getenv("NASDAQ_API_KEY") or os.getenv("SHARADAR_API_KEY"))
+    if not key:
+        raise RuntimeError("No API key — add NASDAQ_API_KEY=... to .env")
     dest = Path(dest) if dest else config.BULK / f"{table}_{years}.csv"
     dest.parent.mkdir(parents=True, exist_ok=True)
     r = requests.get(f"https://api.sharadar.com/v1.0/data/{table}",

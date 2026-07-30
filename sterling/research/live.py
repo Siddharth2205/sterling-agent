@@ -57,9 +57,11 @@ def current_cross_section(recent_days: int = 10) -> pd.DataFrame:
     """Build TODAY's feature cross-section from the latest prices — one row per currently
     active mid-cap-and-up name, features evaluated at its most recent bar. Unlike the
     labelled matrix (whose newest rows are just-delisted names ~3 months stale), this is
-    the live snapshot to rank. Fundamental/macro features are left NaN — they shift all
-    names equally on a date, so they don't change the cross-sectional ranking."""
+    the live snapshot to rank. Fundamentals come from EDGAR when available (they differ
+    per name, so they DO move the ranking); macro features are left NaN — those shift all
+    names equally on a date."""
     from sterling.research import features as F
+    from sterling.research.fundamentals import fundamentals_as_of
     from sterling.research.survivorship import select_universe
 
     meta = store.load_tickers()
@@ -69,6 +71,9 @@ def current_cross_section(recent_days: int = 10) -> pd.DataFrame:
     if not prices:
         return pd.DataFrame()
     gmax = max(df.index[-1].date() for df in prices.values())
+
+    from sterling.research import edgar
+    fund_fn = edgar.fundamentals_fn(uni) if edgar.FACTS_PARQUET.exists() else None
 
     rows = []
     for tk, df in prices.items():
@@ -80,10 +85,14 @@ def current_cross_section(recent_days: int = 10) -> pd.DataFrame:
         if price < config.MIN_PRICE or dvol < config.MIN_DOLLAR_VOL:
             continue
         fr = F._price_feature_frame(df).iloc[-1]
-        row = {"date": df.index[-1].date(), "ticker": tk}
+        d = df.index[-1].date()
+        row = {"date": d, "ticker": tk}
         for c in F.PRICE_FEATURES:
             row[c] = float(fr[c]) if pd.notna(fr[c]) else np.nan
-        for c in F.FUND_FEATURES + F.MACRO_FEATURES:
+        fund = fundamentals_as_of(fund_fn(tk), d, price) if fund_fn else {}
+        for c in F.FUND_FEATURES:
+            row[c] = float(fund[c]) if c in fund and pd.notna(fund[c]) else np.nan
+        for c in F.MACRO_FEATURES:
             row[c] = np.nan
         rows.append(row)
     return pd.DataFrame(rows)
@@ -109,13 +118,18 @@ def generate_book(features_pkl=None, long_frac: float = 0.2,
 
     n = max(1, int(len(today) * long_frac))
     book = today.nlargest(n, "sig").copy()
-    inv = 1.0 / book["vol_63"].clip(lower=1e-3)      # calmer names get more weight
+    vol = book["vol_63"].clip(lower=1e-3)            # calmer names get more weight
+    vol = vol.fillna(vol.median() if vol.notna().any() else 1.0)
+    inv = 1.0 / vol
     book["weight"] = (inv / inv.sum()).round(5)
     return asof, book[["ticker", "sector", "pred", "weight"]].reset_index(drop=True)
 
 
 def log_book(asof: date, book: pd.DataFrame) -> int:
     """Append a dated book to the paper ledger (idempotent per rebalance date)."""
+    if book.empty:
+        logger.warning("empty book — nothing logged")
+        return 0
     rows = book.assign(rebalance_date=str(asof))[
         ["rebalance_date", "ticker", "sector", "pred", "weight"]]
     if LEDGER.exists():
@@ -127,15 +141,14 @@ def log_book(asof: date, book: pd.DataFrame) -> int:
 
 
 def evaluate() -> dict:
-    """Score every logged book against the equal-weight universe, delisting-aware."""
+    """Score every logged book: weighted return from each rebalance date to the latest
+    price. Delisted names are not dropped — their series ends at the last traded print,
+    so the collapse is booked (a stub payout beyond that is not modelled)."""
     if not LEDGER.exists():
         return {"error": "no ledger yet — run `book` first"}
     led = pd.read_csv(LEDGER)
     tickers = set(led["ticker"])
     prices = store.load_prices(tickers)
-    meta = store.load_tickers()
-    delist = {r.ticker: r.lastpricedate for r in meta.itertuples(index=False)
-              if str(getattr(r, "isdelisted", "N")) == "Y" and pd.notna(getattr(r, "lastpricedate", None))}
 
     def ret_since(tk, d0) -> float | None:
         df = prices.get(tk)

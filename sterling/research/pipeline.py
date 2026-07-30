@@ -36,8 +36,18 @@ def build_features(horizon: int = config.HORIZON) -> dict:
     vixdf = dataset.download_one("^VIX", years=12)
     vix_by_date = {d.date(): float(c) for d, c in vixdf["Close"].items()} if vixdf is not None else {}
 
+    # Point-in-time fundamentals from SEC EDGAR, if the facts Parquet has been built
+    # (`python -m sterling.research edgar`). Without it those features stay NaN.
+    from sterling.research import edgar
+    hist_fund_fn = None
+    if edgar.FACTS_PARQUET.exists():
+        hist_fund_fn = edgar.fundamentals_fn(universe)
+        logger.info("EDGAR fundamentals: ON")
+    else:
+        logger.info("EDGAR fundamentals: OFF (no facts parquet — fundamental features will be NaN)")
+
     feat = features.build_features(prices, {"US": spy}, market_of=lambda t: "US",
-                                   hist_fund_fn=None, vix_by_date=vix_by_date,
+                                   hist_fund_fn=hist_fund_fn, vix_by_date=vix_by_date,
                                    step=config.SAMPLE_STEP, warmup=config.WARMUP)
     lab = sv.add_labels(feat, prices, delisting, horizon=horizon)
 
@@ -72,8 +82,8 @@ def analyze(top_ns=(15, 25), costs_bps=(10, 20), horizon: int = config.HORIZON) 
         for c in costs_bps:
             sims[f"top{n}_cost{c}"] = ps.simulate(panel, top_n=n, horizon=horizon, cost_bps=c)
     result = {"walkforward": {k: v for k, v in wf.items() if k != "folds"}, "sims": sims}
-    json.dump({"walkforward": wf, "sims": sims},
-              open(config.RESULT_JSON, "w"), indent=2, default=str)
+    with open(config.RESULT_JSON, "w") as fh:
+        json.dump({"walkforward": wf, "sims": sims}, fh, indent=2, default=str)
     logger.info(f"pooled OOS IC={wf.get('pooled_ic')}, ship={wf.get('ship_recommendation')}")
     return result
 

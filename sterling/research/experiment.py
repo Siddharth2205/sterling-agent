@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 import random
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -75,8 +75,16 @@ def bootstrap() -> None:
     spy = dataset.download_one("SPY", years=30)
     vixdf = dataset.download_one("^VIX", years=30)
     vix_by_date = {d.date(): float(c) for d, c in vixdf["Close"].items()} if vixdf is not None else {}
+
+    # Point-in-time fundamentals from SEC EDGAR (free; ~2009+ only — earlier rows NaN).
+    from sterling.research import edgar
+    if not edgar.FACTS_PARQUET.exists():
+        edgar.download_companyfacts()
+        edgar.convert_companyfacts(ciks=set(edgar.ticker_cik_map().values()) or None)
+    hist_fund_fn = edgar.fundamentals_fn(uni)
+
     feat = F.build_features(prices, {"US": spy}, market_of=lambda t: "US",
-                            hist_fund_fn=None, vix_by_date=vix_by_date,
+                            hist_fund_fn=hist_fund_fn, vix_by_date=vix_by_date,
                             step=config.SAMPLE_STEP, warmup=config.WARMUP)
     lab = sv.add_labels(feat, prices, delist, horizon=config.HORIZON)   # UNFILTERED
     lab.to_pickle(FULL_FEATURES)
@@ -126,7 +134,10 @@ def evaluate(cfg: dict, df: pd.DataFrame) -> dict:
     # cross-sectional excess vs the tradeable universe on each date
     d["label"] = d["fwd_return"] - d.groupby("date")["fwd_return"].transform("mean")
 
-    dev = d[d["date"] < HOLDOUT_START]
+    # Embargo: a dev row's forward window must not reach into the hold-out, or the
+    # "untouched" period leaks into training via the labels.
+    embargo = pd.Timedelta(days=int(config.HORIZON * 1.6))
+    dev = d[d["date"] < (HOLDOUT_START - embargo)]
     hold = d[d["date"] >= HOLDOUT_START]
     if dev["date"].nunique() < 40 or hold["date"].nunique() < 20:
         return {"error": "insufficient dev/holdout span"}
@@ -165,10 +176,13 @@ def evaluate(cfg: dict, df: pd.DataFrame) -> dict:
 
 def run_batch(n: int = 20, seed: int | None = None) -> pd.DataFrame:
     """Evaluate `n` new candidates and append them to the persistent leaderboard."""
-    rng = random.Random(seed if seed is not None else datetime.utcnow().microsecond)
+    rng = random.Random(seed if seed is not None else datetime.now(timezone.utc).microsecond)
     df = build_matrix()
     board = pd.read_csv(LEDGER) if LEDGER.exists() else pd.DataFrame()
-    leaders = board.sort_values("dev_sharpe", ascending=False) if len(board) else None
+    leaders = (board[board["dev_sharpe"].notna()].sort_values("dev_sharpe", ascending=False)
+               if "dev_sharpe" in board.columns else None)
+    if leaders is not None and leaders.empty:
+        leaders = None
 
     new = []
     for i in range(n):
@@ -177,7 +191,7 @@ def run_batch(n: int = 20, seed: int | None = None) -> pd.DataFrame:
             row = evaluate(cfg, df)
         except Exception as e:  # noqa: BLE001 — a bad candidate must never kill the run
             row = {"config": json.dumps(cfg, sort_keys=True), "error": repr(e)[:160]}
-        row["ts"] = datetime.utcnow().isoformat(timespec="seconds")
+        row["ts"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         new.append(row)
         logger.info(f"[{i+1}/{n}] dev_sharpe={row.get('dev_sharpe')} holdout_sharpe={row.get('holdout_sharpe')}")
 
@@ -190,8 +204,9 @@ def leaderboard(top: int = 10) -> pd.DataFrame:
     if not LEDGER.exists():
         return pd.DataFrame()
     b = pd.read_csv(LEDGER)
-    b = b[b["dev_sharpe"].notna()] if "dev_sharpe" in b else b
-    return b.sort_values("dev_sharpe", ascending=False).head(top)
+    if "dev_sharpe" not in b.columns:
+        return pd.DataFrame()
+    return b[b["dev_sharpe"].notna()].sort_values("dev_sharpe", ascending=False).head(top)
 
 
 def final_report() -> dict:

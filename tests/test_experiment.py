@@ -13,6 +13,15 @@ def test_sample_config_perturbs_a_leader(monkeypatch):
     cfg = X.sample_config(random.Random(1), leaders=leaders)
     assert set(cfg) == set(X.SPACE)   # still a full, valid config
 
+def test_leaderboard_survives_error_only_ledger(tmp_path, monkeypatch):
+    # A first batch where every candidate errored writes a CSV with no dev_sharpe
+    # column — later runs must not crash on it.
+    board = pd.DataFrame([{"config": json.dumps({"x": 1}), "error": "boom", "ts": "t"}])
+    p = tmp_path / "lb.csv"; board.to_csv(p, index=False)
+    monkeypatch.setattr(X, "LEDGER", p)
+    assert X.leaderboard().empty
+
+
 def test_final_report_flags_no_edge_below_t2(tmp_path, monkeypatch):
     board = pd.DataFrame([
         {"config": json.dumps({"x": 1}), "dev_sharpe": 0.6,

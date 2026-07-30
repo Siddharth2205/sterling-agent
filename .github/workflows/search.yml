@@ -51,9 +51,11 @@ jobs:
         with:
           path: |
             data/sharadar_bulk
+            data/edgar/edgar_facts.parquet
             data/survivorship_full_features.pkl
             data/experiment_matrix.pkl
-          key: sterling-matrix-v1
+          # v2: matrix now includes SEC EDGAR fundamentals — forces a one-time rebuild
+          key: sterling-matrix-v2
 
       - name: Run one search cycle (builds matrix on first run) + Telegram progress
         run: python -m sterling.research experiment -n 15 -v
@@ -78,7 +80,7 @@ jobs:
         run: |
           git config user.name  "sterling-bot"
           git config user.email "sterling-bot@users.noreply.github.com"
-          git add -f data/experiment_leaderboard.csv docs/dashboard_data.json || true
+          git add -f data/experiment_leaderboard.csv data/paper_ledger.csv docs/dashboard_data.json || true
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: search + dashboard update [skip ci]"
           # master can move during a long run — rebase onto latest, then push, with retries

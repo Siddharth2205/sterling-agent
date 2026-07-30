@@ -37,7 +37,7 @@ def _usable_features(train: pd.DataFrame, features: list) -> list:
     HistGradientBoosting's binner errors on a constant/all-NaN feature. Dropping them is
     also the honest thing — the model can't use fundamentals in periods that had none.
     """
-    return [f for f in features if train[f].nunique(dropna=True) >= 2]
+    return [f for f in features if f in train.columns and train[f].nunique(dropna=True) >= 2]
 
 
 def _make_model(params: dict | None = None):
@@ -152,6 +152,8 @@ def walk_forward(
     alll = np.concatenate(pooled_label)
     pooled_test = pd.concat(pooled_frames, ignore_index=True)
     ics = [f["ic"] for f in fold_reports if f["ic"] == f["ic"]]
+    if not ics:
+        return {"error": "no folds produced a finite IC"}
     pooled_ic = _ic(allp, alll)
     buckets = _bucket_stats(allp, alll)
     top = _top_bucket_by_date(pooled_test)

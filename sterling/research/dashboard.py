@@ -35,8 +35,9 @@ def _plain_config(cfg: dict) -> str:
 
 def _passed(r) -> bool:
     try:
-        return float(r.holdout_t) > PASS_T and float(r.holdout_sharpe) > PASS_SHARPE
-    except (TypeError, ValueError):
+        return (float(getattr(r, "holdout_t")) > PASS_T
+                and float(getattr(r, "holdout_sharpe")) > PASS_SHARPE)
+    except (AttributeError, TypeError, ValueError):
         return False
 
 
@@ -70,12 +71,16 @@ def build_data() -> dict:
                 cfg = json.loads(r.config)
             except Exception:
                 cfg = {}
+            def _num(name, digits):
+                v = getattr(r, name, None)
+                return round(float(v), digits) if v is not None and pd.notna(v) else None
+
             candidates.append({
                 "ts": str(getattr(r, "ts", "")),
-                "dev_sharpe": round(float(r.dev_sharpe), 3) if pd.notna(r.dev_sharpe) else None,
-                "holdout_sharpe": round(float(r.holdout_sharpe), 3) if pd.notna(r.holdout_sharpe) else None,
-                "holdout_alpha": round(float(r.holdout_alpha), 2) if pd.notna(r.holdout_alpha) else None,
-                "holdout_t": round(float(r.holdout_t), 2) if pd.notna(r.holdout_t) else None,
+                "dev_sharpe": _num("dev_sharpe", 3),
+                "holdout_sharpe": _num("holdout_sharpe", 3),
+                "holdout_alpha": _num("holdout_alpha", 2),
+                "holdout_t": _num("holdout_t", 2),
                 "config": _plain_config(cfg),
                 "passed": _passed(r),
             })

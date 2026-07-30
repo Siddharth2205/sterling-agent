@@ -3,6 +3,7 @@
 Commands:
   verify     check the Sharadar API key is responding
   parquet    convert bulk CSVs to Parquet (one-time)
+  edgar      download SEC companyfacts bulk + extract fundamentals to Parquet (one-time)
   features   build the survivorship-free feature+label matrix
   analyze    run walk-forward validation + net-of-cost portfolio sim
   all        features + analyze
@@ -21,7 +22,7 @@ def main(argv=None) -> int:
     parser.add_argument("command",
                         choices=["verify", "parquet", "features", "analyze", "all",
                                  "book", "evaluate", "notify-test",
-                                 "experiment", "experiment-final", "dashboard"])
+                                 "experiment", "experiment-final", "dashboard", "edgar"])
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
@@ -76,6 +77,14 @@ def main(argv=None) -> int:
         print(json.dumps(rep, indent=2, default=str))
         if not args.no_notify:
             notify.send(notify.format_experiment(rep))
+    elif args.command == "edgar":
+        # one-time: download the SEC companyfacts bulk + extract our tags to Parquet
+        from sterling.research import edgar
+        edgar.download_companyfacts()
+        ciks = set(edgar.ticker_cik_map().values())
+        fp = edgar.convert_companyfacts(ciks=ciks or None)
+        print(f"EDGAR facts ready: {fp} ({fp.stat().st_size / 1e6:.0f} MB, "
+              f"{len(ciks)} universe CIKs)")
     elif args.command == "dashboard":
         from sterling.research import dashboard
         d = dashboard.build_data()

@@ -29,7 +29,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -147,7 +147,7 @@ def load_prices_sharadar(tickers: list[str], years: int = 25,
                          cache: bool = True) -> dict[str, pd.DataFrame]:
     """{ticker: OHLCV df} from the `stocks` endpoint (one call per ticker; full history
     fits under the 10k-row page limit for daily data over ~40y). Per-ticker CSV cache."""
-    start = (datetime.utcnow() - timedelta(days=years * 365 + 10)).strftime("%Y-%m-%d")
+    start = (datetime.now(timezone.utc) - timedelta(days=years * 365 + 10)).strftime("%Y-%m-%d")
     out: dict[str, pd.DataFrame] = {}
     for i, tk in enumerate(tickers, 1):
         fp = _CACHE / f"px_{tk.replace('/', '_')}.csv"
@@ -228,12 +228,12 @@ def historical_fundamentals(ticker: str, _cache: dict = {}) -> list[dict]:
                 return float(v)
             except (TypeError, ValueError):
                 return None
+        fcf, mcap = num("fcf"), num("marketcap")
         recs.append({
             "available_from": str(r.get("date", ""))[:10],
             "pe": num("pe"), "revenue_growth": None,
             "debt_to_equity": num("de"), "roe": num("roe"),
-            "fcf_yield_pct": (num("fcf") / num("marketcap") * 100)
-                             if num("fcf") and num("marketcap") else None,
+            "fcf_yield_pct": (fcf / mcap * 100) if fcf is not None and mcap else None,
             "_revenue": num("revenue"),
         })
     for i in range(len(recs)):

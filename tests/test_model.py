@@ -37,3 +37,7 @@ class TestWalkForwardGate:
         train = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [np.nan, np.nan, np.nan], "c": [5.0, 5.0, 5.0]})
         used = model._usable_features(train, ["a", "b", "c"])
         assert used == ["a"]  # b all-NaN, c constant → both dropped
+
+    def test_usable_features_ignores_missing_columns(self):
+        train = pd.DataFrame({"a": [1.0, 2.0, 3.0]})
+        assert model._usable_features(train, ["a", "not_there"]) == ["a"]
