@@ -23,7 +23,6 @@ import random
 import time
 from datetime import date, datetime, timezone
 
-import numpy as np
 import pandas as pd
 
 from sterling.research import config, model as M, construction as C, store, tradeable

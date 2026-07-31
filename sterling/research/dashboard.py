@@ -8,7 +8,6 @@ so the published GitHub Pages site stays current.
 from __future__ import annotations
 
 import json
-from collections import Counter
 from datetime import datetime, timezone, date
 
 import pandas as pd
@@ -65,7 +64,6 @@ def build_data() -> dict:
     candidates, progress = [], []
     if not valid.empty:
         valid = valid.sort_values("ts")
-        seen = Counter()
         for r in valid.itertuples(index=False):
             try:
                 cfg = json.loads(r.config)
