@@ -20,6 +20,7 @@ If these fail, the honest output is "no edge" and nothing gets integrated.
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -28,6 +29,16 @@ import pandas as pd
 from sterling.research.features import ALL_FEATURES
 
 logger = logging.getLogger(__name__)
+
+# Cosmetic sklearn/joblib wiring notice from HistGradientBoostingRegressor's internal
+# binning step (low-core-count CI runners only; harmless — fit results are unaffected).
+# Each candidate evaluation fits 7 models over up to 400 boosting iterations, so left
+# unfiltered this floods CI logs with 100k+ lines and burns real wall-clock on I/O.
+warnings.filterwarnings(
+    "ignore",
+    message=r"`sklearn\.utils\.parallel\.delayed` should be used with",
+    category=UserWarning,
+)
 
 
 def _usable_features(train: pd.DataFrame, features: list) -> list:
