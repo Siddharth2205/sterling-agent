@@ -125,9 +125,12 @@ def enumerate_space() -> list[dict]:
 
 
 def _era_rows(board: pd.DataFrame) -> pd.DataFrame:
-    """Rows scored on the CURRENT feature matrix — the only comparable ones."""
-    if board is None or board.empty or "era" not in board.columns:
+    """Rows scored on the CURRENT feature matrix — the only comparable ones.
+    Always preserves the input's columns (a pre-era board has none matching)."""
+    if board is None or board.empty:
         return pd.DataFrame()
+    if "era" not in board.columns:
+        return board.iloc[0:0]          # no era column -> nothing current, columns kept
     return board[board["era"] == MATRIX_ERA]
 
 

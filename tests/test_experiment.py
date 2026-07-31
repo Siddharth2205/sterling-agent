@@ -60,6 +60,13 @@ def test_enumerate_space_is_full_grid():
             assert v in X.SPACE[k]
 
 
+def test_untested_handles_board_without_era_column():
+    # The real pre-sweep leaderboard has no `era` column at all — everything is
+    # untested and nothing may crash (this exact case broke the first sweep run).
+    board = pd.DataFrame([{"config": json.dumps({"x": 1}), "dev_sharpe": 0.5, "ts": "t"}])
+    assert len(X.untested_configs(board)) == 5832
+
+
 def test_untested_excludes_current_era_only():
     cfg = X.enumerate_space()[0]
     key = json.dumps(cfg, sort_keys=True)
