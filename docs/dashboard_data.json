@@ -1,15 +1,15 @@
 {
-  "updated": "2026-07-30T21:29+00:00",
-  "trials": 60,
+  "updated": "2026-07-31T02:20+00:00",
+  "trials": 75,
   "pass_count": 1,
   "edge_found": false,
-  "days_remaining": 29,
+  "days_remaining": 28,
   "deadline": "2026-08-28",
   "holdout_since": "2022-01-01",
   "best": {
-    "holdout_alpha": 19.67,
-    "holdout_sharpe": 0.94,
-    "holdout_t": 2.0,
+    "holdout_alpha": 9.61,
+    "holdout_sharpe": 0.43,
+    "holdout_t": 0.91,
     "plain": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3"
   },
   "candidates": [
@@ -525,6 +525,105 @@
       "holdout_t": 1.41,
       "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
       "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:32:17+00:00",
+      "dev_sharpe": 0.9,
+      "holdout_sharpe": 0.4,
+      "holdout_alpha": 8.26,
+      "holdout_t": 0.85,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:35:47+00:00",
+      "dev_sharpe": 0.9,
+      "holdout_sharpe": 0.4,
+      "holdout_alpha": 8.26,
+      "holdout_t": 0.85,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:39:17+00:00",
+      "dev_sharpe": 0.9,
+      "holdout_sharpe": 0.46,
+      "holdout_alpha": 10.31,
+      "holdout_t": 0.97,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:41:44+00:00",
+      "dev_sharpe": 0.43,
+      "holdout_sharpe": 0.2,
+      "holdout_alpha": 0.87,
+      "holdout_t": 0.43,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:44:14+00:00",
+      "dev_sharpe": 0.31,
+      "holdout_sharpe": 0.55,
+      "holdout_alpha": 3.81,
+      "holdout_t": 1.18,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:46:48+00:00",
+      "dev_sharpe": 0.01,
+      "holdout_sharpe": 0.35,
+      "holdout_alpha": 8.43,
+      "holdout_t": 0.75,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:49:23+00:00",
+      "dev_sharpe": 0.58,
+      "holdout_sharpe": 0.48,
+      "holdout_alpha": 9.57,
+      "holdout_t": 1.01,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:52:18+00:00",
+      "dev_sharpe": 1.05,
+      "holdout_sharpe": 0.6,
+      "holdout_alpha": 13.5,
+      "holdout_t": 1.27,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:56:04+00:00",
+      "dev_sharpe": 0.9,
+      "holdout_sharpe": 0.46,
+      "holdout_alpha": 10.31,
+      "holdout_t": 0.97,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T01:59:14+00:00",
+      "dev_sharpe": 1.05,
+      "holdout_sharpe": 0.6,
+      "holdout_alpha": 13.5,
+      "holdout_t": 1.27,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-07-31T02:02:25+00:00",
+      "dev_sharpe": 1.1,
+      "holdout_sharpe": 0.43,
+      "holdout_alpha": 9.61,
+      "holdout_t": 0.91,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
     }
   ],
   "progress": [
@@ -535,26 +634,30 @@
     {
       "day": "2026-07-30",
       "cumulative": 57
+    },
+    {
+      "day": "2026-07-31",
+      "cumulative": 68
     }
   ],
   "book": {
-    "asof": "2026-07-29",
-    "count": 467,
+    "asof": "2026-07-30",
+    "count": 468,
     "picks": [
       {
         "ticker": "DBRG",
         "sector": "Real Estate",
-        "weight": 3.81
-      },
-      {
-        "ticker": "GSAT",
-        "sector": "Communication Services",
-        "weight": 1.01
+        "weight": 3.82
       },
       {
         "ticker": "BMO",
         "sector": "Financial Services",
-        "weight": 0.6
+        "weight": 0.59
+      },
+      {
+        "ticker": "TD",
+        "sector": "Financial Services",
+        "weight": 0.57
       },
       {
         "ticker": "HR",
@@ -564,108 +667,108 @@
       {
         "ticker": "PAGP",
         "sector": "Energy",
+        "weight": 0.57
+      },
+      {
+        "ticker": "ESS",
+        "sector": "Real Estate",
         "weight": 0.56
       },
       {
-        "ticker": "SPG",
-        "sector": "Real Estate",
-        "weight": 0.53
+        "ticker": "FBP",
+        "sector": "Financial Services",
+        "weight": 0.55
+      },
+      {
+        "ticker": "SEIC",
+        "sector": "Financial Services",
+        "weight": 0.52
+      },
+      {
+        "ticker": "WTM",
+        "sector": "Financial Services",
+        "weight": 0.52
       },
       {
         "ticker": "HST",
         "sector": "Real Estate",
-        "weight": 0.52
+        "weight": 0.51
       },
       {
-        "ticker": "MET",
-        "sector": "Financial Services",
-        "weight": 0.5
-      },
-      {
-        "ticker": "DRH",
+        "ticker": "GNL",
         "sector": "Real Estate",
-        "weight": 0.49
+        "weight": 0.51
       },
       {
         "ticker": "FFBC",
         "sector": "Financial Services",
+        "weight": 0.5
+      },
+      {
+        "ticker": "APLE",
+        "sector": "Real Estate",
+        "weight": 0.5
+      },
+      {
+        "ticker": "XEL",
+        "sector": "Utilities",
+        "weight": 0.49
+      },
+      {
+        "ticker": "RHP",
+        "sector": "Real Estate",
         "weight": 0.48
       },
       {
-        "ticker": "CUZ",
-        "sector": "Real Estate",
-        "weight": 0.47
-      },
-      {
-        "ticker": "STT",
+        "ticker": "SIGI",
         "sector": "Financial Services",
-        "weight": 0.47
-      },
-      {
-        "ticker": "MSGE",
-        "sector": "Consumer Cyclical",
-        "weight": 0.47
-      },
-      {
-        "ticker": "AUB",
-        "sector": "Financial Services",
-        "weight": 0.45
-      },
-      {
-        "ticker": "WKC",
-        "sector": "Energy",
-        "weight": 0.45
-      },
-      {
-        "ticker": "PSMT",
-        "sector": "Consumer Defensive",
-        "weight": 0.43
+        "weight": 0.46
       }
     ],
     "sectors": [
       {
-        "name": "Healthcare",
-        "pct": 14.0
+        "name": "Financial Services",
+        "pct": 17.1
       },
       {
         "name": "Technology",
-        "pct": 13.5
-      },
-      {
-        "name": "Consumer Cyclical",
-        "pct": 13.4
-      },
-      {
-        "name": "Financial Services",
-        "pct": 13.4
+        "pct": 13.0
       },
       {
         "name": "Industrials",
-        "pct": 10.4
+        "pct": 13.0
+      },
+      {
+        "name": "Healthcare",
+        "pct": 12.9
       },
       {
         "name": "Real Estate",
-        "pct": 9.5
-      },
-      {
-        "name": "Basic Materials",
-        "pct": 8.2
-      },
-      {
-        "name": "Consumer Defensive",
-        "pct": 5.6
-      },
-      {
-        "name": "Communication Services",
-        "pct": 5.5
+        "pct": 10.5
       },
       {
         "name": "Energy",
-        "pct": 5.1
+        "pct": 7.1
+      },
+      {
+        "name": "Consumer Cyclical",
+        "pct": 7.1
+      },
+      {
+        "name": "Basic Materials",
+        "pct": 6.6
+      },
+      {
+        "name": "Consumer Defensive",
+        "pct": 6.5
+      },
+      {
+        "name": "Communication Services",
+        "pct": 3.8
       },
       {
         "name": "Utilities",
-        "pct": 1.3
+        "pct": 2.6
       }
     ]
   }
