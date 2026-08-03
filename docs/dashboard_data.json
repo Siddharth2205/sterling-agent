@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-03T00:37+00:00",
-  "trials": 1672,
+  "updated": "2026-08-03T08:50+00:00",
+  "trials": 1846,
   "pass_count": 6,
   "edge_found": false,
   "days_remaining": 25,
@@ -9930,6 +9930,1068 @@
       "holdout_t": 1.24,
       "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
       "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:39:28+00:00",
+      "dev_sharpe": 0.49,
+      "holdout_sharpe": 0.58,
+      "holdout_alpha": 11.34,
+      "holdout_t": 1.23,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:41:52+00:00",
+      "dev_sharpe": -0.16,
+      "holdout_sharpe": -0.16,
+      "holdout_alpha": -4.68,
+      "holdout_t": -0.33,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:43:44+00:00",
+      "dev_sharpe": 0.35,
+      "holdout_sharpe": -0.22,
+      "holdout_alpha": -1.53,
+      "holdout_t": -0.47,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:46:10+00:00",
+      "dev_sharpe": -0.1,
+      "holdout_sharpe": 0.05,
+      "holdout_alpha": 1.62,
+      "holdout_t": 0.11,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:48:10+00:00",
+      "dev_sharpe": -0.33,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.56,
+      "holdout_t": -0.06,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:50:01+00:00",
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.2,
+      "holdout_alpha": -3.77,
+      "holdout_t": -0.43,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:51:46+00:00",
+      "dev_sharpe": -0.23,
+      "holdout_sharpe": -0.19,
+      "holdout_alpha": -3.81,
+      "holdout_t": -0.41,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:53:58+00:00",
+      "dev_sharpe": 0.4,
+      "holdout_sharpe": 0.63,
+      "holdout_alpha": 4.45,
+      "holdout_t": 1.33,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:55:47+00:00",
+      "dev_sharpe": 0.46,
+      "holdout_sharpe": 0.16,
+      "holdout_alpha": 0.64,
+      "holdout_t": 0.34,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:57:41+00:00",
+      "dev_sharpe": 0.63,
+      "holdout_sharpe": 0.51,
+      "holdout_alpha": 2.04,
+      "holdout_t": 1.08,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T04:59:24+00:00",
+      "dev_sharpe": -0.26,
+      "holdout_sharpe": 0.06,
+      "holdout_alpha": 1.31,
+      "holdout_t": 0.12,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:01:15+00:00",
+      "dev_sharpe": -0.14,
+      "holdout_sharpe": 0.13,
+      "holdout_alpha": 2.58,
+      "holdout_t": 0.28,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:03:30+00:00",
+      "dev_sharpe": 0.66,
+      "holdout_sharpe": -0.01,
+      "holdout_alpha": -0.11,
+      "holdout_t": -0.03,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:06:01+00:00",
+      "dev_sharpe": 0.43,
+      "holdout_sharpe": -0.02,
+      "holdout_alpha": -0.15,
+      "holdout_t": -0.04,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:07:57+00:00",
+      "dev_sharpe": 0.45,
+      "holdout_sharpe": 0.65,
+      "holdout_alpha": 9.56,
+      "holdout_t": 1.37,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:09:59+00:00",
+      "dev_sharpe": 0.36,
+      "holdout_sharpe": 0.24,
+      "holdout_alpha": 2.14,
+      "holdout_t": 0.52,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:12:24+00:00",
+      "dev_sharpe": 1.17,
+      "holdout_sharpe": 0.39,
+      "holdout_alpha": 6.83,
+      "holdout_t": 0.82,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:14:14+00:00",
+      "dev_sharpe": 0.6,
+      "holdout_sharpe": 0.38,
+      "holdout_alpha": 5.04,
+      "holdout_t": 0.8,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:15:55+00:00",
+      "dev_sharpe": 0.52,
+      "holdout_sharpe": 0.47,
+      "holdout_alpha": 5.78,
+      "holdout_t": 1.01,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:17:55+00:00",
+      "dev_sharpe": 0.04,
+      "holdout_sharpe": 0.2,
+      "holdout_alpha": 5.32,
+      "holdout_t": 0.43,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:19:56+00:00",
+      "dev_sharpe": 0.27,
+      "holdout_sharpe": 0.5,
+      "holdout_alpha": 6.7,
+      "holdout_t": 1.07,
+      "config": "hold the top 10%, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:21:47+00:00",
+      "dev_sharpe": -0.15,
+      "holdout_sharpe": 0.12,
+      "holdout_alpha": 2.61,
+      "holdout_t": 0.26,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:24:00+00:00",
+      "dev_sharpe": 0.58,
+      "holdout_sharpe": 0.22,
+      "holdout_alpha": 2.57,
+      "holdout_t": 0.46,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:26:40+00:00",
+      "dev_sharpe": 0.65,
+      "holdout_sharpe": 0.08,
+      "holdout_alpha": 0.6,
+      "holdout_t": 0.16,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:28:23+00:00",
+      "dev_sharpe": 0.6,
+      "holdout_sharpe": 0.27,
+      "holdout_alpha": 4.8,
+      "holdout_t": 0.58,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:30:24+00:00",
+      "dev_sharpe": 0.57,
+      "holdout_sharpe": 0.19,
+      "holdout_alpha": 0.73,
+      "holdout_t": 0.4,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:32:52+00:00",
+      "dev_sharpe": -0.24,
+      "holdout_sharpe": 0.0,
+      "holdout_alpha": 0.02,
+      "holdout_t": 0.0,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:34:39+00:00",
+      "dev_sharpe": -0.3,
+      "holdout_sharpe": 0.15,
+      "holdout_alpha": 3.11,
+      "holdout_t": 0.33,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:36:22+00:00",
+      "dev_sharpe": 0.0,
+      "holdout_sharpe": 0.42,
+      "holdout_alpha": 8.32,
+      "holdout_t": 0.9,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:38:18+00:00",
+      "dev_sharpe": 0.58,
+      "holdout_sharpe": 0.19,
+      "holdout_alpha": 1.33,
+      "holdout_t": 0.41,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:40:12+00:00",
+      "dev_sharpe": -0.03,
+      "holdout_sharpe": 0.26,
+      "holdout_alpha": 5.47,
+      "holdout_t": 0.56,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:42:47+00:00",
+      "dev_sharpe": 0.53,
+      "holdout_sharpe": 0.29,
+      "holdout_alpha": 1.6,
+      "holdout_t": 0.62,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:44:20+00:00",
+      "dev_sharpe": -0.25,
+      "holdout_sharpe": 0.3,
+      "holdout_alpha": 6.61,
+      "holdout_t": 0.63,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:46:45+00:00",
+      "dev_sharpe": 0.84,
+      "holdout_sharpe": -0.01,
+      "holdout_alpha": -0.05,
+      "holdout_t": -0.01,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:48:46+00:00",
+      "dev_sharpe": 0.4,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 3.77,
+      "holdout_t": 0.77,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:51:26+00:00",
+      "dev_sharpe": 0.87,
+      "holdout_sharpe": 0.38,
+      "holdout_alpha": 3.47,
+      "holdout_t": 0.81,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:53:08+00:00",
+      "dev_sharpe": -0.1,
+      "holdout_sharpe": 0.14,
+      "holdout_alpha": 3.05,
+      "holdout_t": 0.3,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:54:42+00:00",
+      "dev_sharpe": 0.46,
+      "holdout_sharpe": 0.29,
+      "holdout_alpha": 2.47,
+      "holdout_t": 0.61,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:56:35+00:00",
+      "dev_sharpe": -0.21,
+      "holdout_sharpe": 0.3,
+      "holdout_alpha": 5.12,
+      "holdout_t": 0.63,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T05:58:20+00:00",
+      "dev_sharpe": -0.04,
+      "holdout_sharpe": 0.46,
+      "holdout_alpha": 8.57,
+      "holdout_t": 0.97,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:00:04+00:00",
+      "dev_sharpe": -0.42,
+      "holdout_sharpe": 0.0,
+      "holdout_alpha": 0.07,
+      "holdout_t": 0.01,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:01:38+00:00",
+      "dev_sharpe": -0.4,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.51,
+      "holdout_t": -0.06,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:03:39+00:00",
+      "dev_sharpe": -0.05,
+      "holdout_sharpe": -0.23,
+      "holdout_alpha": -6.37,
+      "holdout_t": -0.5,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:05:14+00:00",
+      "dev_sharpe": 0.43,
+      "holdout_sharpe": 0.11,
+      "holdout_alpha": 0.4,
+      "holdout_t": 0.23,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:07:00+00:00",
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": 0.49,
+      "holdout_alpha": 8.51,
+      "holdout_t": 1.03,
+      "config": "hold the top 10%, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:09:25+00:00",
+      "dev_sharpe": 0.35,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 5.2,
+      "holdout_t": 0.96,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:11:09+00:00",
+      "dev_sharpe": 0.33,
+      "holdout_sharpe": 0.44,
+      "holdout_alpha": 6.08,
+      "holdout_t": 0.94,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:12:45+00:00",
+      "dev_sharpe": -0.16,
+      "holdout_sharpe": -0.03,
+      "holdout_alpha": -0.54,
+      "holdout_t": -0.06,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:14:20+00:00",
+      "dev_sharpe": -0.45,
+      "holdout_sharpe": -0.06,
+      "holdout_alpha": -1.09,
+      "holdout_t": -0.12,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:17:01+00:00",
+      "dev_sharpe": 1.01,
+      "holdout_sharpe": 0.57,
+      "holdout_alpha": 11.15,
+      "holdout_t": 1.21,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:19:24+00:00",
+      "dev_sharpe": 0.63,
+      "holdout_sharpe": 0.5,
+      "holdout_alpha": 11.08,
+      "holdout_t": 1.07,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:21:17+00:00",
+      "dev_sharpe": 0.57,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 7.81,
+      "holdout_t": 0.96,
+      "config": "hold the top 10%, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:22:55+00:00",
+      "dev_sharpe": 0.65,
+      "holdout_sharpe": 0.75,
+      "holdout_alpha": 2.82,
+      "holdout_t": 1.58,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:25:22+00:00",
+      "dev_sharpe": 0.05,
+      "holdout_sharpe": -0.14,
+      "holdout_alpha": -3.69,
+      "holdout_t": -0.29,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:27:25+00:00",
+      "dev_sharpe": -0.2,
+      "holdout_sharpe": -0.14,
+      "holdout_alpha": -2.94,
+      "holdout_t": -0.29,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:29:08+00:00",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.49,
+      "holdout_alpha": 4.72,
+      "holdout_t": 1.04,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:31:10+00:00",
+      "dev_sharpe": 0.69,
+      "holdout_sharpe": 0.59,
+      "holdout_alpha": 2.99,
+      "holdout_t": 1.25,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:32:55+00:00",
+      "dev_sharpe": 0.5,
+      "holdout_sharpe": 0.72,
+      "holdout_alpha": 12.71,
+      "holdout_t": 1.52,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:35:37+00:00",
+      "dev_sharpe": 0.94,
+      "holdout_sharpe": 0.31,
+      "holdout_alpha": 5.18,
+      "holdout_t": 0.67,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:37:27+00:00",
+      "dev_sharpe": 0.03,
+      "holdout_sharpe": 0.32,
+      "holdout_alpha": 6.3,
+      "holdout_t": 0.68,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:40:18+00:00",
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": -0.16,
+      "holdout_alpha": -0.95,
+      "holdout_t": -0.34,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:42:45+00:00",
+      "dev_sharpe": -0.17,
+      "holdout_sharpe": -0.11,
+      "holdout_alpha": -2.83,
+      "holdout_t": -0.23,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:45:18+00:00",
+      "dev_sharpe": 0.85,
+      "holdout_sharpe": 0.36,
+      "holdout_alpha": 2.89,
+      "holdout_t": 0.76,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:47:19+00:00",
+      "dev_sharpe": 0.59,
+      "holdout_sharpe": 0.09,
+      "holdout_alpha": 0.84,
+      "holdout_t": 0.19,
+      "config": "hold the top 20%, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:49:33+00:00",
+      "dev_sharpe": 0.53,
+      "holdout_sharpe": 0.0,
+      "holdout_alpha": 0.02,
+      "holdout_t": 0.01,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:52:18+00:00",
+      "dev_sharpe": -0.14,
+      "holdout_sharpe": -0.07,
+      "holdout_alpha": -2.07,
+      "holdout_t": -0.15,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:54:08+00:00",
+      "dev_sharpe": 0.39,
+      "holdout_sharpe": 0.48,
+      "holdout_alpha": 2.1,
+      "holdout_t": 1.01,
+      "config": "hold the top 20%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:55:51+00:00",
+      "dev_sharpe": -0.1,
+      "holdout_sharpe": -0.0,
+      "holdout_alpha": -0.08,
+      "holdout_t": -0.01,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T06:57:42+00:00",
+      "dev_sharpe": 0.72,
+      "holdout_sharpe": 0.57,
+      "holdout_alpha": 2.03,
+      "holdout_t": 1.21,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:00:02+00:00",
+      "dev_sharpe": -0.24,
+      "holdout_sharpe": 0.54,
+      "holdout_alpha": 11.54,
+      "holdout_t": 1.15,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:02:15+00:00",
+      "dev_sharpe": -0.02,
+      "holdout_sharpe": -0.0,
+      "holdout_alpha": -0.12,
+      "holdout_t": -0.01,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:04:00+00:00",
+      "dev_sharpe": 0.46,
+      "holdout_sharpe": 0.37,
+      "holdout_alpha": 5.84,
+      "holdout_t": 0.78,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:05:48+00:00",
+      "dev_sharpe": 0.42,
+      "holdout_sharpe": 0.45,
+      "holdout_alpha": 7.34,
+      "holdout_t": 0.95,
+      "config": "hold the top 10%, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:07:47+00:00",
+      "dev_sharpe": 0.02,
+      "holdout_sharpe": 0.13,
+      "holdout_alpha": 2.59,
+      "holdout_t": 0.28,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:09:49+00:00",
+      "dev_sharpe": 0.62,
+      "holdout_sharpe": 0.3,
+      "holdout_alpha": 4.85,
+      "holdout_t": 0.63,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:11:50+00:00",
+      "dev_sharpe": -0.18,
+      "holdout_sharpe": -0.17,
+      "holdout_alpha": -3.81,
+      "holdout_t": -0.36,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:13:39+00:00",
+      "dev_sharpe": 0.36,
+      "holdout_sharpe": 0.49,
+      "holdout_alpha": 2.79,
+      "holdout_t": 1.03,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:15:22+00:00",
+      "dev_sharpe": -0.21,
+      "holdout_sharpe": -0.07,
+      "holdout_alpha": -1.23,
+      "holdout_t": -0.14,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:17:07+00:00",
+      "dev_sharpe": -0.08,
+      "holdout_sharpe": -0.08,
+      "holdout_alpha": -1.68,
+      "holdout_t": -0.16,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:19:14+00:00",
+      "dev_sharpe": -0.29,
+      "holdout_sharpe": -0.19,
+      "holdout_alpha": -3.85,
+      "holdout_t": -0.41,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:21:25+00:00",
+      "dev_sharpe": 0.24,
+      "holdout_sharpe": 0.09,
+      "holdout_alpha": 0.58,
+      "holdout_t": 0.2,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:23:47+00:00",
+      "dev_sharpe": 0.61,
+      "holdout_sharpe": 0.64,
+      "holdout_alpha": 12.37,
+      "holdout_t": 1.35,
+      "config": "hold the top 10%, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:25:49+00:00",
+      "dev_sharpe": 0.6,
+      "holdout_sharpe": 0.68,
+      "holdout_alpha": 4.99,
+      "holdout_t": 1.44,
+      "config": "hold the top 20%, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:27:31+00:00",
+      "dev_sharpe": -0.24,
+      "holdout_sharpe": -0.06,
+      "holdout_alpha": -1.28,
+      "holdout_t": -0.14,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:29:13+00:00",
+      "dev_sharpe": 0.37,
+      "holdout_sharpe": 0.63,
+      "holdout_alpha": 2.6,
+      "holdout_t": 1.34,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:30:57+00:00",
+      "dev_sharpe": 0.5,
+      "holdout_sharpe": 0.71,
+      "holdout_alpha": 2.75,
+      "holdout_t": 1.5,
+      "config": "hold the top 33%, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:33:09+00:00",
+      "dev_sharpe": -0.01,
+      "holdout_sharpe": 0.19,
+      "holdout_alpha": 4.02,
+      "holdout_t": 0.4,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:35:11+00:00",
+      "dev_sharpe": -0.3,
+      "holdout_sharpe": 0.03,
+      "holdout_alpha": 0.63,
+      "holdout_t": 0.07,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:37:54+00:00",
+      "dev_sharpe": -0.01,
+      "holdout_sharpe": 0.01,
+      "holdout_alpha": 0.15,
+      "holdout_t": 0.01,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:40:10+00:00",
+      "dev_sharpe": 0.64,
+      "holdout_sharpe": 0.86,
+      "holdout_alpha": 3.61,
+      "holdout_t": 1.82,
+      "config": "hold the top 33%, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:42:04+00:00",
+      "dev_sharpe": -0.2,
+      "holdout_sharpe": -0.05,
+      "holdout_alpha": -0.97,
+      "holdout_t": -0.1,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:43:55+00:00",
+      "dev_sharpe": 0.37,
+      "holdout_sharpe": 0.39,
+      "holdout_alpha": 2.4,
+      "holdout_t": 0.82,
+      "config": "hold the top 33%, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:45:50+00:00",
+      "dev_sharpe": -0.25,
+      "holdout_sharpe": -0.18,
+      "holdout_alpha": -3.94,
+      "holdout_t": -0.39,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:47:24+00:00",
+      "dev_sharpe": -0.34,
+      "holdout_sharpe": 0.1,
+      "holdout_alpha": 1.89,
+      "holdout_t": 0.22,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:49:17+00:00",
+      "dev_sharpe": 0.37,
+      "holdout_sharpe": 0.3,
+      "holdout_alpha": 2.48,
+      "holdout_t": 0.63,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:51:43+00:00",
+      "dev_sharpe": -0.23,
+      "holdout_sharpe": 0.04,
+      "holdout_alpha": 0.61,
+      "holdout_t": 0.08,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:53:32+00:00",
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.08,
+      "holdout_alpha": -1.5,
+      "holdout_t": -0.18,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:55:08+00:00",
+      "dev_sharpe": 0.35,
+      "holdout_sharpe": 0.21,
+      "holdout_alpha": 0.94,
+      "holdout_t": 0.44,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:57:21+00:00",
+      "dev_sharpe": 0.01,
+      "holdout_sharpe": -0.13,
+      "holdout_alpha": -3.26,
+      "holdout_t": -0.27,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T07:59:37+00:00",
+      "dev_sharpe": -0.07,
+      "holdout_sharpe": 0.25,
+      "holdout_alpha": 4.83,
+      "holdout_t": 0.53,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:01:49+00:00",
+      "dev_sharpe": -0.08,
+      "holdout_sharpe": 0.35,
+      "holdout_alpha": 5.45,
+      "holdout_t": 0.74,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:03:56+00:00",
+      "dev_sharpe": 0.01,
+      "holdout_sharpe": 0.06,
+      "holdout_alpha": 1.43,
+      "holdout_t": 0.13,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:05:29+00:00",
+      "dev_sharpe": 0.41,
+      "holdout_sharpe": 0.44,
+      "holdout_alpha": 6.18,
+      "holdout_t": 0.93,
+      "config": "hold the top 20%, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:07:22+00:00",
+      "dev_sharpe": -0.03,
+      "holdout_sharpe": -0.08,
+      "holdout_alpha": -1.78,
+      "holdout_t": -0.17,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:09:46+00:00",
+      "dev_sharpe": 0.81,
+      "holdout_sharpe": 0.44,
+      "holdout_alpha": 3.91,
+      "holdout_t": 0.93,
+      "config": "hold the top 20%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:12:11+00:00",
+      "dev_sharpe": -0.17,
+      "holdout_sharpe": -0.12,
+      "holdout_alpha": -3.42,
+      "holdout_t": -0.26,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:14:24+00:00",
+      "dev_sharpe": -0.25,
+      "holdout_sharpe": 0.21,
+      "holdout_alpha": 3.46,
+      "holdout_t": 0.45,
+      "config": "buy the best & short the worst, sector-balanced, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:16:17+00:00",
+      "dev_sharpe": 0.18,
+      "holdout_sharpe": -0.08,
+      "holdout_alpha": -1.84,
+      "holdout_t": -0.17,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:19:02+00:00",
+      "dev_sharpe": 0.61,
+      "holdout_sharpe": 0.52,
+      "holdout_alpha": 6.84,
+      "holdout_t": 1.1,
+      "config": "hold the top 10%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:21:06+00:00",
+      "dev_sharpe": 0.69,
+      "holdout_sharpe": -0.29,
+      "holdout_alpha": -1.59,
+      "holdout_t": -0.63,
+      "config": "hold the top 33%, any sector, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:23:31+00:00",
+      "dev_sharpe": 0.27,
+      "holdout_sharpe": 0.14,
+      "holdout_alpha": 4.62,
+      "holdout_t": 0.3,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:26:06+00:00",
+      "dev_sharpe": -0.22,
+      "holdout_sharpe": -0.22,
+      "holdout_alpha": -4.91,
+      "holdout_t": -0.46,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $1M/day, price \u2265 $10",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:27:49+00:00",
+      "dev_sharpe": -0.05,
+      "holdout_sharpe": 0.07,
+      "holdout_alpha": 1.52,
+      "holdout_t": 0.16,
+      "config": "buy the best & short the worst, any sector, equal-weight \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:29:25+00:00",
+      "dev_sharpe": -0.15,
+      "holdout_sharpe": 0.02,
+      "holdout_alpha": 0.37,
+      "holdout_t": 0.04,
+      "config": "buy the best & short the worst, any sector, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:31:15+00:00",
+      "dev_sharpe": 0.33,
+      "holdout_sharpe": -0.25,
+      "holdout_alpha": -1.03,
+      "holdout_t": -0.53,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:33:40+00:00",
+      "dev_sharpe": 0.47,
+      "holdout_sharpe": 0.41,
+      "holdout_alpha": 3.12,
+      "holdout_t": 0.87,
+      "config": "hold the top 33%, sector-balanced, equal-weight \u00b7 \u2265 $1M/day, price \u2265 $5",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:35:34+00:00",
+      "dev_sharpe": -0.27,
+      "holdout_sharpe": -0.14,
+      "holdout_alpha": -2.78,
+      "holdout_t": -0.3,
+      "config": "buy the best & short the worst, sector-balanced, calm-weighted \u00b7 \u2265 $5M/day, price \u2265 $3",
+      "passed": false
+    },
+    {
+      "ts": "2026-08-03T08:37:47+00:00",
+      "dev_sharpe": 0.58,
+      "holdout_sharpe": 0.16,
+      "holdout_alpha": 0.94,
+      "holdout_t": 0.34,
+      "config": "hold the top 33%, sector-balanced, calm-weighted \u00b7 \u2265 $0M/day, price \u2265 $3",
+      "passed": false
     }
   ],
   "progress": [
@@ -9947,7 +11009,7 @@
     },
     {
       "day": "2026-08-03",
-      "cumulative": 1102
+      "cumulative": 1220
     }
   ],
   "book": {
