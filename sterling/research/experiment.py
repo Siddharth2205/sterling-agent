@@ -275,6 +275,15 @@ def run_batch(n: int = 20, seed: int | None = None,
     return board
 
 
+def grid_status() -> dict:
+    """How much of the grid is truly settled (scored or legitimately skipped)."""
+    total = len(enumerate_space())
+    board = pd.read_csv(LEDGER) if LEDGER.exists() else pd.DataFrame()
+    settled = len(_settled_configs(board))
+    return {"settled": settled, "total": total, "complete": settled >= total,
+            "remaining": total - settled}
+
+
 def leaderboard(top: int = 10) -> pd.DataFrame:
     if not LEDGER.exists():
         return pd.DataFrame()

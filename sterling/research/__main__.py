@@ -22,7 +22,8 @@ def main(argv=None) -> int:
     parser.add_argument("command",
                         choices=["verify", "parquet", "features", "analyze", "all",
                                  "book", "evaluate", "notify-test",
-                                 "experiment", "experiment-final", "dashboard", "edgar"])
+                                 "experiment", "experiment-final", "dashboard", "edgar",
+                                 "grid-status"])
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
@@ -91,6 +92,21 @@ def main(argv=None) -> int:
         from sterling.research import dashboard
         d = dashboard.build_data()
         print(f"dashboard: {d['trials']} trials -> docs/dashboard_data.json")
+    elif args.command == "grid-status":
+        # print coverage; on first reaching 100%, ping Telegram once (sentinel-gated)
+        from sterling.research import experiment, notify, config
+        st = experiment.grid_status()
+        print(json.dumps(st, indent=2))
+        sentinel = config.DATA / ".grid_complete"
+        if st["complete"] and not sentinel.exists():
+            rep = experiment.final_report()
+            if not args.no_notify:
+                notify.send(
+                    "🏁 <b>Sterling — GRID 100% COMPLETE</b>\n"
+                    f"All {st['total']} strategy configs settled.\n\n"
+                    + notify.format_experiment(rep))
+            sentinel.write_text(str(st["total"]))
+            print("grid complete — pinged + sentinel written")
     elif args.command == "experiment-final":
         # the Aug-28 wrap-up: full honest verdict to Telegram
         from sterling.research import experiment, notify

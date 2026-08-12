@@ -51,6 +51,24 @@ def test_final_report_ignores_other_eras(tmp_path, monkeypatch):
     assert rep["trials"] == 1 and rep["holdout_t"] == 0.8
 
 
+def test_grid_status_counts_settled(tmp_path, monkeypatch):
+    grid = X.enumerate_space()
+    # 2 scored + 1 legit-skip settle; 1 crash does NOT
+    rows = [
+        {"config": json.dumps(grid[0], sort_keys=True), "era": X.MATRIX_ERA, "dev_sharpe": 0.5},
+        {"config": json.dumps(grid[1], sort_keys=True), "era": X.MATRIX_ERA, "dev_sharpe": -0.2},
+        {"config": json.dumps(grid[2], sort_keys=True), "era": X.MATRIX_ERA,
+         "dev_sharpe": None, "error": "too few tradeable rows"},
+        {"config": json.dumps(grid[3], sort_keys=True), "era": X.MATRIX_ERA,
+         "dev_sharpe": None, "error": "window shape cannot be larger than input array shape"},
+    ]
+    p = tmp_path / "lb.csv"; pd.DataFrame(rows).to_csv(p, index=False)
+    monkeypatch.setattr(X, "LEDGER", p)
+    st = X.grid_status()
+    assert st["total"] == 5832 and st["settled"] == 3      # crash not counted
+    assert st["remaining"] == 5829 and st["complete"] is False
+
+
 def test_enumerate_space_is_full_grid():
     grid = X.enumerate_space()
     assert len(grid) == 5832                       # 3^6 x 2 x 2 x 2 distinct configs

@@ -69,6 +69,10 @@ jobs:
         if: ${{ always() }}
         run: python -m sterling.research dashboard || true
 
+      - name: Ping Telegram once when the grid hits 100%
+        if: ${{ always() }}
+        run: python -m sterling.research grid-status || true
+
       - name: Final report on/after Aug 28
         if: ${{ always() }}
         run: |
@@ -81,7 +85,7 @@ jobs:
         run: |
           git config user.name  "sterling-bot"
           git config user.email "sterling-bot@users.noreply.github.com"
-          git add -f data/experiment_leaderboard.csv data/paper_ledger.csv docs/dashboard_data.json || true
+          git add -f data/experiment_leaderboard.csv data/paper_ledger.csv docs/dashboard_data.json data/.grid_complete || true
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: search + dashboard update [skip ci]"
           # master can move during a long run — rebase onto latest, then push, with retries
