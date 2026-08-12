@@ -1,17 +1,16 @@
 name: Sterling Autonomous Strategy Search
 
-# Sweeps the FULL 5,832-config strategy grid in time-budgeted batches every 6 hours
-# until the grid is exhausted (or Aug 28, whichever first), then sends a final Telegram
-# report. First run builds the survivorship-free matrix from the Sharadar bulk + SEC
-# EDGAR fundamentals and caches it; later runs restore the cache and just sweep. The
-# leaderboard is committed back after every run so nothing is ever lost.
+# Sweeps the 5,832-config grid in time-budgeted batches. A crash is now RETRIED (never
+# treated as settled), so the remaining not-yet-scored configs get re-attempted until the
+# grid is truly complete; then runs become quick no-ops that just refresh the paper book +
+# dashboard. Cadence drops to weekly once the grid is 100% settled (see commit history).
 #
 # Required repo Secrets (Settings → Secrets and variables → Actions):
 #   NASDAQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 on:
   schedule:
-    - cron: '0 1,7,13,19 * * *'   # every 6h — full-grid sweep (public repo, free minutes)
+    - cron: '0 1,7,13,19 * * *'   # every 6h until the grid is truly complete, then -> weekly
   workflow_dispatch:              # manual "Run workflow" button
 
 permissions:

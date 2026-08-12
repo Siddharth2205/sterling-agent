@@ -123,6 +123,19 @@ def enumerate_space() -> list[dict]:
     return [dict(zip(keys, combo)) for combo in itertools.product(*uniq)]
 
 
+# A candidate is "settled" (never retried) if it produced a real score OR a
+# deterministic, data-driven skip. Any OTHER error is a transient/environment crash
+# (e.g. a numpy window error on a partially-built matrix) — those MUST be retried,
+# never treated as permanently done, or a single bad run poisons the config forever.
+_LEGIT_SKIP_MARKERS = ("too few tradeable rows", "insufficient dev/holdout span")
+
+
+def _is_legit_skip(err) -> bool:
+    if err is None or (isinstance(err, float) and pd.isna(err)):
+        return False
+    return any(m in str(err) for m in _LEGIT_SKIP_MARKERS)
+
+
 def _era_rows(board: pd.DataFrame) -> pd.DataFrame:
     """Rows scored on the CURRENT feature matrix — the only comparable ones.
     Always preserves the input's columns (a pre-era board has none matching)."""
@@ -133,11 +146,23 @@ def _era_rows(board: pd.DataFrame) -> pd.DataFrame:
     return board[board["era"] == MATRIX_ERA]
 
 
+def _settled_configs(board: pd.DataFrame | None) -> set:
+    """Configs with a real score or a legit skip in the current era (won't be retried)."""
+    era = _era_rows(board)
+    if era.empty:
+        return set()
+    has_score = era["dev_sharpe"].notna() if "dev_sharpe" in era.columns else pd.Series(False, index=era.index)
+    errs = era["error"] if "error" in era.columns else pd.Series(None, index=era.index)
+    settled_mask = has_score | errs.map(_is_legit_skip)
+    return set(era.loc[settled_mask, "config"])
+
+
 def untested_configs(board: pd.DataFrame | None) -> list[dict]:
-    """Grid configs not yet scored in the current era (other eras don't count —
-    their scores came from a different matrix and are not reproducible)."""
-    tested = set(_era_rows(board)["config"]) if board is not None and len(board) else set()
-    return [c for c in enumerate_space() if json.dumps(c, sort_keys=True) not in tested]
+    """Grid configs not yet SETTLED in the current era. A prior transient crash does
+    not count as settled — the config is re-attempted (other eras never count; their
+    scores came from a different matrix and are not reproducible)."""
+    settled = _settled_configs(board)
+    return [c for c in enumerate_space() if json.dumps(c, sort_keys=True) not in settled]
 
 
 def sample_config(rng: random.Random, leaders: pd.DataFrame | None = None) -> dict:
@@ -185,7 +210,7 @@ def evaluate(cfg: dict, df: pd.DataFrame) -> dict:
     # HOLD-OUT: train on ALL development data, predict the untouched hold-out, then book it
     used = M._usable_features(dev, ALL_FEATURES)
     mdl = M._make_model(mp)
-    mdl.fit(dev[used], dev["label"])
+    mdl, used = M.fit_resilient(mdl, dev[used], dev["label"])
     hp = hold.copy()
     hp["pred"] = mdl.predict(hp[used])
     hold_mn = _neutral(hp[["date", "ticker", "fwd_return", "label", "vol_63", "sector", "pred"]], cfg)
@@ -217,8 +242,16 @@ def run_batch(n: int = 20, seed: int | None = None,
     board = pd.read_csv(LEDGER) if LEDGER.exists() else pd.DataFrame()
     todo = untested_configs(board)
     if not todo:
-        logger.info(f"grid exhausted — all {len(enumerate_space())} configs scored in era {MATRIX_ERA}")
+        logger.info(f"grid exhausted — all {len(enumerate_space())} configs settled in era {MATRIX_ERA}")
         return board
+    # Drop this era's stale crash rows for configs we're about to retry, so a retried
+    # config ends with exactly one row (its fresh result) instead of crash + result.
+    if len(board) and "config" in board.columns:
+        todo_keys = {json.dumps(c, sort_keys=True) for c in todo}
+        is_stale_crash = (board.get("era") == MATRIX_ERA) & board["config"].isin(todo_keys)
+        if is_stale_crash.any():
+            logger.info(f"purging {int(is_stale_crash.sum())} stale crash rows for retry")
+            board = board[~is_stale_crash].reset_index(drop=True)
     rng.shuffle(todo)
     total = len(enumerate_space())
     logger.info(f"sweep era {MATRIX_ERA}: {total - len(todo)}/{total} done, "
@@ -259,7 +292,7 @@ def final_report() -> dict:
         return {"error": "no experiments yet"}
     b = _era_rows(pd.read_csv(LEDGER))
     valid = b[b["dev_sharpe"].notna()] if "dev_sharpe" in b.columns else pd.DataFrame()
-    n_trials = len(b)
+    n_trials = int(valid["config"].nunique()) if not valid.empty else 0
     if valid.empty:
         return {"trials": n_trials, "verdict": "no valid candidates yet"}
     lead = valid.sort_values("dev_sharpe", ascending=False).iloc[0]

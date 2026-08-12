@@ -70,9 +70,45 @@ def test_untested_handles_board_without_era_column():
 def test_untested_excludes_current_era_only():
     cfg = X.enumerate_space()[0]
     key = json.dumps(cfg, sort_keys=True)
-    # tested in the current era -> excluded
-    board = pd.DataFrame([{"config": key, "era": X.MATRIX_ERA}])
+    # scored in the current era -> settled -> excluded
+    board = pd.DataFrame([{"config": key, "era": X.MATRIX_ERA, "dev_sharpe": 0.5}])
     assert key not in {json.dumps(c, sort_keys=True) for c in X.untested_configs(board)}
-    # tested only in an old era -> still due for a re-test
-    board_old = pd.DataFrame([{"config": key, "era": "v1"}])
+    # scored only in an old era -> still due for a re-test
+    board_old = pd.DataFrame([{"config": key, "era": "v1", "dev_sharpe": 0.5}])
     assert key in {json.dumps(c, sort_keys=True) for c in X.untested_configs(board_old)}
+
+
+def test_transient_crash_is_retried_but_legit_skip_is_not():
+    grid = X.enumerate_space()
+    crash_key = json.dumps(grid[0], sort_keys=True)
+    skip_key = json.dumps(grid[1], sort_keys=True)
+    board = pd.DataFrame([
+        # a numpy/env crash — must NOT be treated as done
+        {"config": crash_key, "era": X.MATRIX_ERA, "dev_sharpe": None,
+         "error": "ValueError('window shape cannot be larger than input array shape')"},
+        # a deterministic data-driven skip — legitimately settled, don't retry
+        {"config": skip_key, "era": X.MATRIX_ERA, "dev_sharpe": None,
+         "error": "too few tradeable rows"},
+    ])
+    untested = {json.dumps(c, sort_keys=True) for c in X.untested_configs(board)}
+    assert crash_key in untested        # crash -> retried
+    assert skip_key not in untested     # legit skip -> settled
+
+
+def test_run_batch_purges_stale_crash_row(tmp_path, monkeypatch):
+    grid = X.enumerate_space()
+    key = json.dumps(grid[0], sort_keys=True)
+    board = pd.DataFrame([{"config": key, "era": X.MATRIX_ERA, "dev_sharpe": None,
+                           "error": "ValueError('window shape cannot be larger than input array shape')",
+                           "ts": "old"}])
+    p = tmp_path / "lb.csv"; board.to_csv(p, index=False)
+    monkeypatch.setattr(X, "LEDGER", p)
+    monkeypatch.setattr(X, "build_matrix", lambda: pd.DataFrame())
+    monkeypatch.setattr(X, "enumerate_space", lambda: [grid[0]])   # only this config in the grid
+    # evaluate now succeeds for that config -> the fresh row replaces the crash row
+    monkeypatch.setattr(X, "evaluate", lambda cfg, df: {"config": json.dumps(cfg, sort_keys=True),
+                                                        "dev_sharpe": 0.7, "holdout_t": 1.0})
+    out = X.run_batch(n=1, seed=0)
+    rows = out[out["config"] == key]
+    assert len(rows) == 1                      # exactly one row, not crash + result
+    assert float(rows.iloc[0]["dev_sharpe"]) == 0.7

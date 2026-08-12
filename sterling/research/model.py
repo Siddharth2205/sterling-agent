@@ -51,6 +51,37 @@ def _usable_features(train: pd.DataFrame, features: list) -> list:
     return [f for f in features if f in train.columns and train[f].nunique(dropna=True) >= 2]
 
 
+def fit_resilient(model, X: pd.DataFrame, y):
+    """Fit `model`, surviving sklearn's binning crash on a near-constant feature.
+
+    HistGradientBoosting bins each feature on an internal random subsample; if a feature
+    ends up with <2 distinct non-NaN values *in that subsample*, sklearn's
+    `sliding_window_view(distinct_values, 2)` raises "window shape cannot be larger than
+    input array shape". `_usable_features` guards distinctness on the full training set,
+    but cannot guarantee it inside the subsample for very sparse fundamentals — so a few
+    (price, dvol) filter subsets crash. This drops the offending (fewest-distinct) feature
+    and refits, repeating if needed.
+
+    Crucially it is a NO-OP whenever the fit already succeeds — the first `try` wins and
+    no feature is dropped — so scores for non-crashing configs are byte-identical to
+    before this guard existed. Returns (fitted_model, columns_actually_used).
+    """
+    cols = list(X.columns)
+    while cols:
+        try:
+            model.fit(X[cols], y)
+            return model, cols
+        except ValueError as e:
+            if "window shape cannot be larger" not in str(e):
+                raise
+            nunq = {c: X[c].nunique(dropna=True) for c in cols}
+            worst = min(nunq, key=nunq.get)
+            logger.warning(f"binning crash — dropping near-constant feature '{worst}' "
+                           f"(nunique={nunq[worst]}) and refitting")
+            cols = [c for c in cols if c != worst]
+    raise ValueError("fit_resilient: no features survived the binning guard")
+
+
 def _make_model(params: dict | None = None):
     from sklearn.ensemble import HistGradientBoostingRegressor
     # Modest capacity + regularization: limited depth, L2, early-ish stopping. The point
@@ -137,7 +168,7 @@ def walk_forward(
 
         used = _usable_features(train, features)
         model = _make_model(model_params)
-        model.fit(train[used], train["label"])
+        model, used = fit_resilient(model, train[used], train["label"])
         test["pred"] = model.predict(test[used])
 
         ic = _ic(test["pred"].to_numpy(), test["label"].to_numpy())
@@ -216,7 +247,7 @@ def generate_oos_predictions(
             continue
         used = _usable_features(train, features)
         m = _make_model(model_params)
-        m.fit(train[used], train["label"])
+        m, used = fit_resilient(m, train[used], train["label"])
         test["pred"] = m.predict(test[used])
         frames.append(test[keep + ["pred"]])
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=keep + ["pred"])
@@ -228,5 +259,5 @@ def train_final_model(df: pd.DataFrame, features: Optional[list] = None):
     data = df.dropna(subset=["label"])
     used = _usable_features(data, features)
     model = _make_model()
-    model.fit(data[used], data["label"])
+    model, used = fit_resilient(model, data[used], data["label"])
     return model, used
