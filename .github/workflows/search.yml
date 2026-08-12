@@ -90,7 +90,7 @@ jobs:
           git commit -m "chore: search + dashboard update [skip ci]"
           # master can move during a long run — rebase onto latest, then push, with retries
           for i in 1 2 3 4 5; do
-            git pull --rebase --autostash origin master \
+            git pull --rebase --autostash -X ours origin master \
               && git push origin HEAD:master \
               && { echo "pushed on attempt $i"; exit 0; }
             echo "push attempt $i failed; retrying in 5s"; sleep 5
