@@ -85,7 +85,14 @@ jobs:
         run: |
           git config user.name  "sterling-bot"
           git config user.email "sterling-bot@users.noreply.github.com"
-          git add -f data/experiment_leaderboard.csv data/paper_ledger.csv docs/dashboard_data.json data/.grid_complete || true
+          # Add each path independently. `git add` is ATOMIC on a pathspec that matches
+          # no files — a single missing path (e.g. the .grid_complete sentinel, which only
+          # exists once the grid is 100% done) aborts the WHOLE add and stages nothing.
+          # That silently discarded a week of results. Never batch a maybe-absent path in.
+          for f in data/experiment_leaderboard.csv data/paper_ledger.csv \
+                   docs/dashboard_data.json data/.grid_complete; do
+            [ -e "$f" ] && git add -f "$f" || true
+          done
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
           git commit -m "chore: search + dashboard update [skip ci]"
           # master can move during a long run — rebase onto latest, then push, with retries
