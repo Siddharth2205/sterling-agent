@@ -51,6 +51,30 @@ def test_final_report_ignores_other_eras(tmp_path, monkeypatch):
     assert rep["trials"] == 1 and rep["holdout_t"] == 0.8
 
 
+def test_merge_into_ledger_unions_and_prefers_settled(tmp_path, monkeypatch):
+    g = X.enumerate_space()
+    def row(cfg, dev=None, err=None):
+        return {"config": json.dumps(cfg, sort_keys=True), "era": X.MATRIX_ERA,
+                "dev_sharpe": dev, "error": err}
+    ledger = tmp_path / "lb.csv"
+    other = tmp_path / "other.csv"
+    # remote (== LEDGER after git reset): cfg0 scored, cfg2 crashed
+    pd.DataFrame([row(g[0], 0.5),
+                  row(g[2], None, "window shape cannot be larger than input array shape")]
+                 ).to_csv(ledger, index=False)
+    # ours: cfg2 now scored (retry won), cfg3 new
+    pd.DataFrame([row(g[2], 0.3), row(g[3], 0.7)]).to_csv(other, index=False)
+    monkeypatch.setattr(X, "LEDGER", ledger)
+    X.merge_into_ledger(str(other))
+    m = pd.read_csv(ledger)
+    assert m["config"].nunique() == 3                       # union of cfg0,2,3
+    c2 = m[m["config"] == json.dumps(g[2], sort_keys=True)]
+    assert float(c2["dev_sharpe"].iloc[0]) == 0.3            # settled beats crash
+    # idempotent
+    X.merge_into_ledger(str(other))
+    assert pd.read_csv(ledger)["config"].nunique() == 3
+
+
 def test_grid_status_counts_settled(tmp_path, monkeypatch):
     grid = X.enumerate_space()
     # 2 scored + 1 legit-skip settle; 1 crash does NOT

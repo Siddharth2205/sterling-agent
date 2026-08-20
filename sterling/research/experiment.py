@@ -275,6 +275,37 @@ def run_batch(n: int = 20, seed: int | None = None,
     return board
 
 
+def merge_into_ledger(other_csv: str) -> dict:
+    """Union the current LEDGER with another leaderboard CSV and write the result back.
+
+    The leaderboard is append-only across many CI runs; when two runs' commits race,
+    a plain git rebase conflicts on the CSV. Instead we merge by UNION: keep one row
+    per (era, config), preferring a settled result (score or legit skip) over a crash.
+    Idempotent and order-independent, so it is safe to re-run on every push retry.
+    """
+    from pathlib import Path
+    frames = []
+    for p in (LEDGER, Path(other_csv)):
+        if Path(p).exists():
+            try:
+                frames.append(pd.read_csv(p))
+            except Exception:  # noqa: BLE001 — a half-written race copy must not abort the merge
+                pass
+    if not frames:
+        return {"rows": 0}
+    b = pd.concat(frames, ignore_index=True)
+    if "config" in b.columns:
+        has_score = b["dev_sharpe"].notna() if "dev_sharpe" in b.columns else pd.Series(False, index=b.index)
+        legit = b["error"].map(_is_legit_skip) if "error" in b.columns else pd.Series(False, index=b.index)
+        b["_settled"] = has_score | legit
+        keys = ["era", "config"] if "era" in b.columns else ["config"]
+        b = (b.sort_values("_settled", ascending=False)
+               .drop_duplicates(subset=keys, keep="first")
+               .drop(columns="_settled"))
+    b.to_csv(LEDGER, index=False)
+    return {"rows": len(b), "settled": len(_settled_configs(b))}
+
+
 def grid_status() -> dict:
     """How much of the grid is truly settled (scored or legitimately skipped)."""
     total = len(enumerate_space())

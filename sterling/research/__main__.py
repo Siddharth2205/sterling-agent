@@ -23,7 +23,9 @@ def main(argv=None) -> int:
                         choices=["verify", "parquet", "features", "analyze", "all",
                                  "book", "evaluate", "notify-test",
                                  "experiment", "experiment-final", "dashboard", "edgar",
-                                 "grid-status"])
+                                 "grid-status", "merge-ledger"])
+    parser.add_argument("--other", type=str, default=None,
+                        help="merge-ledger: path to the other leaderboard CSV to union in")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--no-notify", action="store_true",
                         help="skip the Telegram notification for book/evaluate")
@@ -92,6 +94,10 @@ def main(argv=None) -> int:
         from sterling.research import dashboard
         d = dashboard.build_data()
         print(f"dashboard: {d['trials']} trials -> docs/dashboard_data.json")
+    elif args.command == "merge-ledger":
+        from sterling.research import experiment
+        res = experiment.merge_into_ledger(args.other)
+        print(f"merged leaderboard: {res}")
     elif args.command == "grid-status":
         # print coverage; on first reaching 100%, ping Telegram once (sentinel-gated)
         from sterling.research import experiment, notify, config

@@ -85,21 +85,39 @@ jobs:
         run: |
           git config user.name  "sterling-bot"
           git config user.email "sterling-bot@users.noreply.github.com"
-          # Add each path independently. `git add` is ATOMIC on a pathspec that matches
-          # no files — a single missing path (e.g. the .grid_complete sentinel, which only
-          # exists once the grid is 100% done) aborts the WHOLE add and stages nothing.
-          # That silently discarded a week of results. Never batch a maybe-absent path in.
+          # Snapshot THIS run's outputs before syncing to the remote. The leaderboard is
+          # append-only across many runs; a plain rebase conflicts on the CSV and the old
+          # retry loop then looped forever on the unresolved conflict, discarding the work.
+          # Instead: reset to remote, UNION our leaderboard rows in (never lose a row), and
+          # push — retrying the whole sync on a lost race.
+          mkdir -p "$RUNNER_TEMP/out"
           for f in data/experiment_leaderboard.csv data/paper_ledger.csv \
                    docs/dashboard_data.json data/.grid_complete; do
-            [ -e "$f" ] && git add -f "$f" || true
+            [ -e "$f" ] && cp "$f" "$RUNNER_TEMP/out/$(basename "$f")" || true
           done
-          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "chore: search + dashboard update [skip ci]"
-          # master can move during a long run — rebase onto latest, then push, with retries
-          for i in 1 2 3 4 5; do
-            git pull --rebase --autostash origin master \
-              && git push origin HEAD:master \
-              && { echo "pushed on attempt $i"; exit 0; }
-            echo "push attempt $i failed; retrying in 5s"; sleep 5
+          pushed=0
+          for i in 1 2 3 4 5 6 7 8; do
+            git fetch -q origin master
+            git reset -q --hard origin/master
+            # Leaderboard: union our rows with the remote's (order-independent, dedup by config).
+            [ -e "$RUNNER_TEMP/out/experiment_leaderboard.csv" ] && \
+              python -m sterling.research merge-ledger --other "$RUNNER_TEMP/out/experiment_leaderboard.csv" || true
+            # Paper book, dashboard, sentinel: this run's fresh snapshot wins.
+            for f in paper_ledger.csv dashboard_data.json .grid_complete; do
+              src="$RUNNER_TEMP/out/$f"
+              case "$f" in
+                dashboard_data.json) dst="docs/$f" ;;
+                *) dst="data/$f" ;;
+              esac
+              [ -e "$src" ] && cp "$src" "$dst" || true
+            done
+            for f in data/experiment_leaderboard.csv data/paper_ledger.csv \
+                     docs/dashboard_data.json data/.grid_complete; do
+              [ -e "$f" ] && git add -f "$f" || true
+            done
+            if git diff --cached --quiet; then echo "nothing to commit"; pushed=1; break; fi
+            git commit -q -m "chore: search + dashboard update [skip ci]"
+            if git push -q origin HEAD:master; then echo "pushed on attempt $i"; pushed=1; break; fi
+            echo "push attempt $i lost a race; re-syncing"; sleep $((RANDOM % 8 + 2))
           done
-          echo "::error::could not push after retries"; exit 1
+          [ "$pushed" = 1 ] || { echo "::error::could not push after retries"; exit 1; }
