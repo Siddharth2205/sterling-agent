@@ -1,9 +1,9 @@
 {
-  "updated": "2026-08-25T20:00+00:00",
+  "updated": "2026-08-26T02:49+00:00",
   "trials": 5832,
   "pass_count": 18,
   "edge_found": false,
-  "days_remaining": 3,
+  "days_remaining": 2,
   "deadline": "2026-08-28",
   "holdout_since": "2022-01-01",
   "best": {
