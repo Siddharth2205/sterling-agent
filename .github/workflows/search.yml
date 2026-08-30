@@ -1,17 +1,16 @@
 name: Sterling Autonomous Strategy Search
 
-# Sweeps the 5,832-config grid in time-budgeted batches. A crash is now RETRIED (never
-# treated as settled), so the remaining not-yet-scored configs get re-attempted until the
-# grid is truly complete; then runs become quick no-ops that just refresh the paper book +
-# dashboard. Cadence drops to weekly once the grid is 100% settled (see commit history).
+# The 5,832-config grid sweep is COMPLETE (100% settled, 2026-08-30). This now runs
+# WEEKLY, purely to refresh the live paper book + dashboard; any run whose grid is fully
+# settled is a quick no-op. Use the manual "Run workflow" button for an on-demand refresh.
 #
 # Required repo Secrets (Settings → Secrets and variables → Actions):
 #   NASDAQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 on:
   schedule:
-    - cron: '0 1,7,13,19 * * *'   # every 6h until the grid is truly complete, then -> weekly
-  workflow_dispatch:              # manual "Run workflow" button
+    - cron: '0 7 * * 1'   # weekly, Monday 07:00 UTC — paper-book refresh
+  workflow_dispatch:      # manual "Run workflow" button
 
 permissions:
   contents: write             # to commit the leaderboard back
@@ -29,12 +28,6 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
     steps:
-      - name: Stop after the campaign ends (Aug 28, 2026)
-        run: |
-          if [ "$(date -u +%Y%m%d)" -gt "20260828" ]; then
-            echo "Campaign over — exiting."; exit 0
-          fi
-
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 

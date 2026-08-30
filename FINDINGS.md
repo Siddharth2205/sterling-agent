@@ -4,6 +4,57 @@ The short version: **a fake edge was killed, a real-but-thin edge was found and 
 stress-tested, and the honest conclusion is "index for real money."** This document is the
 evidence trail. (For why the *original heuristic agent* was retired, see [DIAGNOSIS.md](DIAGNOSIS.md).)
 
+> **Two chapters.** §0 below is the **final, definitive campaign** — an exhaustive search of
+> every reasonable strategy, with fundamentals, scored on unseen years. §§1–7 are the earlier
+> single-config investigation that motivated it. Both reach the same verdict.
+
+---
+
+## 0. The exhaustive campaign — final verdict (completed 2026-08-30)
+
+**Question, hardened:** not "can *a* strategy beat the market?" but "does *any* reasonable
+strategy in the whole space beat it, judged on data it never touched?"
+
+**What was tested:** a **5,832-configuration grid** — every combination of liquidity filter
+(price ≥ $3/$5/$10, $ vol ≥ 0.5/1/5M) × model settings (depth, learning rate, leaf size) ×
+portfolio construction (long fraction, long-only vs long-short, sector-neutral on/off,
+inverse-vol vs equal weight). Each candidate trained on pre-2022 data, was scored on a
+**locked 2022→2026 hold-out it was never selected on**, with an embargo so labels can't leak.
+Now including **free SEC EDGAR fundamentals** (P/E, ROE, debt/equity, FCF yield, revenue
+growth) and four classic factor features (gross profitability, asset growth, margin trend,
+net share issuance) — point-in-time, survivorship-free. **Every one of the 5,832 was scored;
+0 errored.**
+
+**Verdict: no deployable edge.** By the pre-registered rule (pick the leader by *development*
+Sharpe, then read *its* untouched hold-out):
+
+| | leader | pass bar |
+|---|---|---|
+| development Sharpe | 1.26 | — |
+| **hold-out Sharpe** | **0.53** | > 0.5 |
+| hold-out alpha | +10.3%/yr | > 0 |
+| **hold-out t-stat** | **1.12** | **> 2.0** ❌ |
+
+The t-stat — the only number that separates skill from luck — is **1.12**, well short of 2.0.
+
+**The winner's-curse cross-check confirms it.** 18 of 5,832 configs cleared the bar on their
+*own* hold-out — but with this many trials, **pure chance alone would produce ~134**. Getting
+*fewer* passers than chance means the set as a whole is **indistinguishable from noise**. There
+is no edge hiding anywhere in the grid.
+
+**One honest, non-actionable pattern.** All 18 nominal passers use the **$10 price floor**, and
+median hold-out t rises monotonically with the floor ($3 → 0.25, $5 → 0.28, $10 → 0.57):
+cleaner, more-liquid names give a marginally better-behaved signal. This was found by
+inspecting hold-out results *after the fact*, so it is a **hypothesis for a future
+pre-registered test, not a result** — and even at $10 the median t (0.57) is far below 2.0.
+
+**Conclusion:** across the entire space of reasonable strategies, on genuinely unseen years,
+**none beats a low-cost index fund.** This is the same answer as the original investigation
+below — now with exhaustive coverage instead of one hand-tuned config behind it. A live paper
+book (logged, timestamped, market-neutral) continues as the only test that outranks the
+hold-out; a few months of it is the sole remaining check before any of this could be believed
+with real capital.
+
 ---
 
 ## 1. The question
