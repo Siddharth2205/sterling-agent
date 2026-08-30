@@ -58,6 +58,12 @@ jobs:
         if: ${{ always() }}
         run: python -m sterling.research book --no-notify || true
 
+      - name: Evaluate paper book vs equal-weight on CURRENT prices (yfinance) + Telegram
+        # The Sharadar bulk is a one-time survivorship-free snapshot; the live forward test
+        # scores logged books against fresh yfinance prices so we learn if the picks worked.
+        if: ${{ always() }}
+        run: python -m sterling.research evaluate --fresh || true
+
       - name: Rebuild the dashboard data
         if: ${{ always() }}
         run: python -m sterling.research dashboard || true

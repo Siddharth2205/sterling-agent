@@ -9,6 +9,46 @@ def _fake_features(tmp, n_tickers=60):
                      "vol_63": abs(rng.normal(0.02,0.01))+0.005, "pred": rng.normal()})
     return pd.DataFrame(rows)
 
+class TestEvaluate:
+    def test_book_and_equal_weight_returns(self, tmp_path, monkeypatch):
+        idx = pd.date_range("2026-07-24", periods=40, freq="B")   # series starts on the book date
+        def frame(p0, p1):
+            v = np.linspace(p0, p1, len(idx))
+            return pd.DataFrame({"Close": v}, index=idx)
+        # AAA +20% (heavy weight), BBB -10% (light weight)
+        prices = {"AAA": frame(100, 120), "BBB": frame(100, 90)}
+        led = pd.DataFrame({"rebalance_date": ["2026-07-24", "2026-07-24"],
+                            "ticker": ["AAA", "BBB"], "sector": ["Tech", "Energy"],
+                            "pred": [1.0, 0.5], "weight": [0.75, 0.25]})
+        p = tmp_path / "ledger.csv"; led.to_csv(p, index=False)
+        monkeypatch.setattr(live, "LEDGER", p)
+        monkeypatch.setattr(live.store, "load_prices", lambda tks: prices)
+        res = live.evaluate(fresh=False)
+        b = res["books"][0]
+        assert b["names"] == 2
+        # book return: 0.75*20% + 0.25*(-10%) = 12.5% ; equal-weight: (20-10)/2 = 5%
+        assert abs(b["book_return_pct"] - 12.5) < 0.3
+        assert abs(b["equal_weight_pct"] - 5.0) < 0.3
+        assert abs(b["weighting_alpha_pct"] - 7.5) < 0.3
+
+    def test_fresh_uses_yfinance_source(self, tmp_path, monkeypatch):
+        # fresh=True must route through _refresh_prices (yfinance), not the stale parquet
+        idx = pd.date_range("2026-07-20", periods=40, freq="B")
+        prices = {"AAA": pd.DataFrame({"Close": np.linspace(100, 110, len(idx))}, index=idx)}
+        led = pd.DataFrame({"rebalance_date": ["2026-07-24"], "ticker": ["AAA"],
+                            "sector": ["Tech"], "pred": [1.0], "weight": [1.0]})
+        p = tmp_path / "ledger.csv"; led.to_csv(p, index=False)
+        monkeypatch.setattr(live, "LEDGER", p)
+        called = {"parquet": False, "fresh": False}
+        def boom(tks): called["parquet"] = True; return {}
+        def fresh(tks, years=2): called["fresh"] = True; return prices
+        monkeypatch.setattr(live.store, "load_prices", boom)
+        monkeypatch.setattr(live, "_refresh_prices", fresh)
+        res = live.evaluate(fresh=True)
+        assert called["fresh"] and not called["parquet"]
+        assert res["books"][0]["names"] == 1
+
+
 class TestBook:
     def test_book_weights_sum_to_one(self, tmp_path, monkeypatch):
         # stub model + tickers so generate_book runs offline

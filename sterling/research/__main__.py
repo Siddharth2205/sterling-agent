@@ -33,6 +33,8 @@ def main(argv=None) -> int:
                         help="experiment: max candidates to evaluate this run")
     parser.add_argument("--budget-min", type=float, default=None,
                         help="experiment: stop starting new candidates after this many minutes")
+    parser.add_argument("--fresh", action="store_true",
+                        help="evaluate: pull current prices (yfinance) instead of the local bulk parquet")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
@@ -66,7 +68,7 @@ def main(argv=None) -> int:
             print("Telegram:", "sent" if notify.send(notify.format_book(asof, book)) else "skipped/failed")
     elif args.command == "evaluate":
         from sterling.research import live, notify
-        res = live.evaluate()
+        res = live.evaluate(fresh=args.fresh)
         print(json.dumps(res, indent=2, default=str))
         if not args.no_notify and "error" not in res:
             print("Telegram:", "sent" if notify.send(notify.format_evaluation(res)) else "skipped/failed")

@@ -140,15 +140,37 @@ def log_book(asof: date, book: pd.DataFrame) -> int:
     return len(book)
 
 
-def evaluate() -> dict:
+def _refresh_prices(tickers, years: int = 2) -> dict:
+    """Fresh current prices for `tickers` via yfinance (free). Used by the weekly paper-book
+    refresh so the forward test is measured against up-to-date prices.
+
+    Why not Sharadar here: the Sharadar plan only guarantees survivorship-free history in
+    the one-time bulk download; the live REST key may be free-tier (limited tickers), so the
+    forward test uses yfinance, which is free and covers currently-trading names. Caveat:
+    yfinance drops fully-delisted tickers, so a name that delists mid-window is simply not
+    scored rather than booking its loss — acceptable for a liquid, currently-held book, but
+    a mild upward bias to keep in mind."""
+    from sterling.research import dataset
+    return dataset.load_prices(sorted(tickers), years=years, force=True)
+
+
+def evaluate(fresh: bool = False) -> dict:
     """Score every logged book: weighted return from each rebalance date to the latest
     price. Delisted names are not dropped — their series ends at the last traded print,
-    so the collapse is booked (a stub payout beyond that is not modelled)."""
+    so the collapse is booked (a stub payout beyond that is not modelled).
+
+    fresh=True pulls current prices from the Sharadar REST API (for the weekly forward
+    test); fresh=False reads the local bulk parquet (fast/offline, but only as current as
+    the last bulk download). Each book is also compared to the equal-weight return of the
+    same held names — the honest, survivorship-neutral baseline (a book beats it only by
+    *weighting*, since both hold the identical names)."""
     if not LEDGER.exists():
         return {"error": "no ledger yet — run `book` first"}
     led = pd.read_csv(LEDGER)
     tickers = set(led["ticker"])
-    prices = store.load_prices(tickers)
+    prices = _refresh_prices(tickers) if fresh else store.load_prices(tickers)
+
+    latest = max((df.index[-1].date() for df in prices.values()), default=None)
 
     def ret_since(tk, d0) -> float | None:
         df = prices.get(tk)
@@ -172,8 +194,15 @@ def evaluate() -> dict:
                 ws.append(r.weight)
         if not rets:
             continue
+        rets = np.array(rets)
         ws = np.array(ws) / np.sum(ws)
         book_ret = float(np.dot(ws, rets))
+        eqw_ret = float(rets.mean())                  # equal-weight baseline, same names
         out.append({"rebalance_date": d0s, "names": len(rets),
-                    "book_return_pct": round(book_ret * 100, 2)})
-    return {"books": out, "note": "returns are since each book's log date, to the latest price"}
+                    "days_held": (latest - d0).days if latest else None,
+                    "book_return_pct": round(book_ret * 100, 2),
+                    "equal_weight_pct": round(eqw_ret * 100, 2),
+                    "weighting_alpha_pct": round((book_ret - eqw_ret) * 100, 2)})
+    return {"books": out, "as_of": str(latest) if latest else None,
+            "note": "return since each book's log date to the latest available price; "
+                    "equal_weight_pct = same names equally weighted (survivorship-neutral baseline)"}

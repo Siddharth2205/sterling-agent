@@ -64,10 +64,20 @@ def format_evaluation(result: dict) -> str:
     books = result.get("books", [])
     if not books:
         return "📊 <b>Sterling</b> — no paper books to evaluate yet."
-    lines = ["📊 <b>Sterling paper track record</b>", ""]
+    asof = result.get("as_of")
+    lines = [f"📊 <b>Sterling paper track record</b>"
+             + (f" (to {asof})" if asof else ""), ""]
     for b in books:
-        lines.append(f"• {b['rebalance_date']}: {b['book_return_pct']:+.2f}% "
-                     f"({b['names']} names)")
+        ew = b.get("equal_weight_pct")
+        held = b.get("days_held")
+        head = f"• <b>{b['rebalance_date']}</b>"
+        head += f" ({held}d)" if held is not None else ""
+        head += f": book <b>{b['book_return_pct']:+.2f}%</b>"
+        if ew is not None:
+            head += f"  vs equal-wt {ew:+.2f}%"
+        lines.append(head)
+    lines += ["", "<i>Return since each book's log date. Equal-wt = the same names, "
+              "equally weighted — the honest baseline. Paper only, not advice.</i>"]
     return "\n".join(lines)
 
 
